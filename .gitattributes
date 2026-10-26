@@ -1,0 +1,5 @@
+# Content-addressed bytes: a model's address is the SHA-256 (or BLAKE3) of its
+# exact bytes, so git must never rewrite their line endings.
+registry/** -text
+src/*.lex.tex -text
+index.html -text

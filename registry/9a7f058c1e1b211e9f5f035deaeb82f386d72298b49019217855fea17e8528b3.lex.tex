@@ -1,0 +1,845 @@
+\begin{lexlean}{HoloSearch}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\title{Boolean}
+\begin{semanticmodule}
+inductive{
+  name: FieldKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Integer, fields: []}, {name: Text, fields: []}]
+}
+
+structure{
+  name: FieldNode,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: label, type: String},
+    {name: kind, type: FieldKind},
+    {name: placeholder, type: String}
+  ]
+}
+
+structure{
+  name: ChoiceOption,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: id, type: String}, {name: label, type: String}, {name: symbol, type: String}]
+}
+
+structure{
+  name: ChoiceNode,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: label, type: String},
+    {name: options, type: (List ChoiceOption)},
+    {name: initial, type: String}
+  ]
+}
+
+inductive{
+  name: Node,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Heading, fields: [String]},
+    {name: Field, fields: [FieldNode]},
+    {name: Choice, fields: [ChoiceNode]},
+    {name: Action, fields: [String]},
+    {name: Output, fields: [String]},
+    {name: Row, fields: [(List Node)]},
+    {name: Stack, fields: [(List Node)]}
+  ]
+}
+
+structure{
+  name: Theme,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: ratio, type: String},
+    {name: typeScale, type: (List Nat)},
+    {name: spaceScale, type: (List Nat)},
+    {name: width, type: Nat},
+    {name: control, type: Nat},
+    {name: background, type: String},
+    {name: surface, type: String},
+    {name: foreground, type: String},
+    {name: muted, type: String},
+    {name: line, type: String},
+    {name: accent, type: String},
+    {name: positive, type: String},
+    {name: negative, type: String}
+  ]
+}
+
+structure{
+  name: Screen,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: title, type: String}, {name: theme, type: Theme}, {name: body, type: (List Node)}]
+}
+
+structure{
+  name: FieldValue,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: id, type: String}, {name: value, type: String}]
+}
+
+inductive{
+  name: Tone,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Neutral, fields: []}, {name: Ok, fields: []}, {name: Error, fields: []}]
+}
+
+structure{
+  name: OutputValue,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: id, type: String}, {name: text, type: String}, {name: tone, type: Tone}]
+}
+
+structure{
+  name: AcceptanceVector,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: given, type: (List FieldValue)}, {name: expected, type: (List OutputValue)}]
+}
+
+structure{
+  name: Application,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: name, type: String},
+    {name: contract, type: String},
+    {name: screen, type: Screen},
+    {name: acceptanceVectors, type: (List AcceptanceVector)}
+  ]
+}
+
+structure{
+  name: Reply,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: text, type: String}, {name: tone, type: Tone}]
+}
+
+structure{
+  name: Facts,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: ids, type: (List String)},
+    {name: outputs, type: (List String)},
+    {name: choicesValid, type: Bool}
+  ]
+}
+
+inductive{
+  name: Input,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Blank, fields: []},
+    {name: Address, fields: [String]},
+    {name: Query, fields: [String]}
+  ]
+}
+
+structure{
+  name: Entry,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: address, type: String},
+    {name: name, type: String},
+    {name: keywords, type: String},
+    {name: size, type: UInt64}
+  ]
+}
+
+inductive{
+  name: Resolution,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Found, fields: [Entry]},
+    {name: Ambiguous, fields: []},
+    {name: Missing, fields: []}
+  ]
+}
+
+inductive{
+  name: Check,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Pass, fields: []}, {name: Fail, fields: []}]
+}
+
+inductive{
+  name: Refusal,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: HashMismatch, fields: []},
+    {name: CheckFailed, fields: []},
+    {name: VectorsFailed, fields: []}
+  ]
+}
+
+inductive{
+  name: Verdict,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Ready, fields: []}, {name: Refused, fields: [Refusal]}]
+}
+
+structure{
+  name: CaseFold,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: upper, type: Bytes}, {name: lower, type: Bytes}]
+}
+
+definition{
+  name: memberBytes,
+  parameters: [value : Bytes, candidates : (List Bytes)],
+  result: Bool,
+  body: (match candidates
+    | List.nil => false
+    | List.cons head rest => (if (prim equal value head : Bool) then true else (memberBytes value rest))),
+  axioms: [],
+  executable: true,
+  recursive_argument: candidates
+}
+
+definition{
+  name: allHexFrom,
+  parameters: [bytes : Bytes, position : Nat, remaining : Nat],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => true
+    | Nat.succ rest => (match (prim slice bytes position 1 : (Option Bytes))
+      | Option.none => false
+      | Option.some digit => (if (memberBytes digit (cons 0x30 (cons 0x31 (cons 0x32 (cons 0x33 (cons 0x34 (cons 0x35 (cons 0x36 (cons 0x37 (cons 0x38 (cons 0x39 (cons 0x61 (cons 0x62 (cons 0x63 (cons 0x64 (cons 0x65 (cons 0x66 (nil Bytes)))))))))))))))))) then (allHexFrom bytes (position + 1) rest) else false))),
+  axioms: [],
+  executable: true,
+  recursive_argument: remaining
+}
+
+definition{
+  name: isAddress,
+  parameters: [text : String],
+  result: Bool,
+  body: (let bytes : Bytes := (prim utf8_encode text : Bytes); (let size : Nat := (prim length bytes : Nat); ((8 <=? size) && ((size <=? 64) && (allHexFrom bytes 0 size))))),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: afterDelimiter,
+  parameters: [text : String, delimiter : String],
+  result: String,
+  body: (match (prim split_exact text delimiter (2 : UInt32) : (Option (List String)))
+    | Option.none => text
+    | Option.some parts => (match (prim index parts 1 : (Option String))
+      | Option.none => text
+      | Option.some rest => rest)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: beforeDelimiter,
+  parameters: [text : String, delimiter : String],
+  result: String,
+  body: (match (prim split_exact text delimiter (64 : UInt32) : (Option (List String)))
+    | Option.none => text
+    | Option.some parts => (match (prim index parts 0 : (Option String))
+      | Option.none => text
+      | Option.some head => head)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: addressPart,
+  parameters: [text : String],
+  result: String,
+  body: (beforeDelimiter (afterDelimiter (afterDelimiter (afterDelimiter text "sha256:") "sha256=") "r=") "&"),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: classify,
+  parameters: [text : String],
+  result: Input,
+  body: (if (prim equal text "" : Bool) then (ctor Input.Blank) else (let candidate : String := (addressPart text); (if (isAddress candidate) then (ctor Input.Address candidate) else (ctor Input.Query text)))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true,
+  production: {effects: [allocation, overflow, recursion], targets: [rust-std]}
+}
+
+definition{
+  name: foldDigit,
+  parameters: [digit : Bytes, folds : (List CaseFold)],
+  result: Bytes,
+  body: (match folds
+    | List.nil => digit
+    | List.cons fold rest => (if (prim equal digit (project fold upper) : Bool) then (project fold lower) else (foldDigit digit rest))),
+  axioms: [],
+  executable: true,
+  recursive_argument: folds
+}
+
+definition{
+  name: lowerFrom,
+  parameters: [bytes : Bytes, position : Nat, remaining : Nat],
+  result: Bytes,
+  body: (match remaining
+    | Nat.zero => 0x
+    | Nat.succ rest => (match (prim slice bytes position 1 : (Option Bytes))
+      | Option.none => 0x
+      | Option.some digit => (prim append (foldDigit digit (cons (record CaseFold {upper := 0x41, lower := 0x61}) (cons (record CaseFold {upper := 0x42, lower := 0x62}) (cons (record CaseFold {upper := 0x43, lower := 0x63}) (cons (record CaseFold {upper := 0x44, lower := 0x64}) (cons (record CaseFold {upper := 0x45, lower := 0x65}) (cons (record CaseFold {upper := 0x46, lower := 0x66}) (cons (record CaseFold {upper := 0x47, lower := 0x67}) (cons (record CaseFold {upper := 0x48, lower := 0x68}) (cons (record CaseFold {upper := 0x49, lower := 0x69}) (cons (record CaseFold {upper := 0x4a, lower := 0x6a}) (cons (record CaseFold {upper := 0x4b, lower := 0x6b}) (cons (record CaseFold {upper := 0x4c, lower := 0x6c}) (cons (record CaseFold {upper := 0x4d, lower := 0x6d}) (cons (record CaseFold {upper := 0x4e, lower := 0x6e}) (cons (record CaseFold {upper := 0x4f, lower := 0x6f}) (cons (record CaseFold {upper := 0x50, lower := 0x70}) (cons (record CaseFold {upper := 0x51, lower := 0x71}) (cons (record CaseFold {upper := 0x52, lower := 0x72}) (cons (record CaseFold {upper := 0x53, lower := 0x73}) (cons (record CaseFold {upper := 0x54, lower := 0x74}) (cons (record CaseFold {upper := 0x55, lower := 0x75}) (cons (record CaseFold {upper := 0x56, lower := 0x76}) (cons (record CaseFold {upper := 0x57, lower := 0x77}) (cons (record CaseFold {upper := 0x58, lower := 0x78}) (cons (record CaseFold {upper := 0x59, lower := 0x79}) (cons (record CaseFold {upper := 0x5a, lower := 0x7a}) (nil CaseFold)))))))))))))))))))))))))))) (lowerFrom bytes (position + 1) rest) : Bytes))),
+  axioms: [],
+  executable: true,
+  recursive_argument: remaining
+}
+
+definition{
+  name: lower,
+  parameters: [text : String],
+  result: String,
+  body: (let bytes : Bytes := (prim utf8_encode text : Bytes); (match (prim utf8_decode (lowerFrom bytes 0 (prim length bytes : Nat)) : (Option String))
+    | Option.none => text
+    | Option.some folded => folded)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: startsWith,
+  parameters: [whole : Bytes, start : Bytes],
+  result: Bool,
+  body: (match (prim slice whole 0 (prim length start : Nat) : (Option Bytes))
+    | Option.none => false
+    | Option.some head => (prim equal head start : Bool)),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: containsFrom,
+  parameters: [whole : Bytes, part : Bytes, position : Nat, remaining : Nat],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => false
+    | Nat.succ rest => (match (prim slice whole position (prim length part : Nat) : (Option Bytes))
+      | Option.none => false
+      | Option.some window => (if (prim equal window part : Bool) then true else (containsFrom whole part (position + 1) rest)))),
+  axioms: [],
+  executable: true,
+  recursive_argument: remaining
+}
+
+definition{
+  name: contains,
+  parameters: [whole : String, part : String],
+  result: Bool,
+  body: (let bytes : Bytes := (prim utf8_encode whole : Bytes); (containsFrom bytes (prim utf8_encode part : Bytes) 0 ((prim length bytes : Nat) + 1))),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: matchesAddress,
+  parameters: [prefix : String, entry : Entry],
+  result: Bool,
+  body: (startsWith (prim utf8_encode (project entry address) : Bytes) (prim utf8_encode prefix : Bytes)),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: withAddress,
+  parameters: [entries : (List Entry), prefix : String],
+  result: (List Entry),
+  body: (match entries
+    | List.nil => (nil Entry)
+    | List.cons entry rest => (if (matchesAddress prefix entry) then (cons entry (withAddress rest prefix)) else (withAddress rest prefix))),
+  axioms: [],
+  executable: true,
+  recursive_argument: entries
+}
+
+definition{
+  name: resolve,
+  parameters: [entries : (List Entry), prefix : String],
+  result: Resolution,
+  body: (let found : (List Entry) := (withAddress entries prefix); (match found
+    | List.nil => (ctor Resolution.Missing)
+    | List.cons only rest => (match rest
+      | List.nil => (ctor Resolution.Found only)
+      | List.cons other more => (ctor Resolution.Ambiguous)))),
+  axioms: [],
+  executable: true,
+  production: {effects: [allocation, overflow, recursion], targets: [rust-std]}
+}
+
+definition{
+  name: matchesQuery,
+  parameters: [query : String, entry : Entry],
+  result: Bool,
+  body: ((contains (project entry keywords) query) || (matchesAddress query entry)),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: withQuery,
+  parameters: [entries : (List Entry), query : String],
+  result: (List Entry),
+  body: (match entries
+    | List.nil => (nil Entry)
+    | List.cons entry rest => (if (matchesQuery query entry) then (cons entry (withQuery rest query)) else (withQuery rest query))),
+  axioms: [],
+  executable: true,
+  recursive_argument: entries
+}
+
+definition{
+  name: takeEntries,
+  parameters: [count : Nat, entries : (List Entry)],
+  result: (List Entry),
+  body: (match count
+    | Nat.zero => (nil Entry)
+    | Nat.succ rest => (match entries
+      | List.nil => (nil Entry)
+      | List.cons entry more => (cons entry (takeEntries rest more)))),
+  axioms: [],
+  executable: true,
+  recursive_argument: count
+}
+
+definition{
+  name: search,
+  parameters: [entries : (List Entry), query : String],
+  result: (List Entry),
+  body: (takeEntries 5 (withQuery entries (lower query))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true,
+  production: {effects: [allocation, overflow, recursion], targets: [rust-std]}
+}
+
+definition{
+  name: vectorsPass,
+  parameters: [passed : UInt32, total : UInt32],
+  result: Check,
+  body: (if (prim equal total (0 : UInt32) : Bool) then (ctor Check.Fail) else (if (prim equal passed total : Bool) then (ctor Check.Pass) else (ctor Check.Fail))),
+  axioms: [],
+  executable: true,
+  production: {effects: [], targets: [rust-core, rust-std]}
+}
+
+definition{
+  name: gate,
+  parameters: [address : Check, compiled : Check, vectors : Check],
+  result: Verdict,
+  body: (match address
+    | Check.Fail => (ctor Verdict.Refused (ctor Refusal.HashMismatch))
+    | Check.Pass => (match compiled
+      | Check.Fail => (ctor Verdict.Refused (ctor Refusal.CheckFailed))
+      | Check.Pass => (match vectors
+        | Check.Fail => (ctor Verdict.Refused (ctor Refusal.VectorsFailed))
+        | Check.Pass => (ctor Verdict.Ready)))),
+  axioms: [],
+  executable: true,
+  production: {effects: [], targets: [rust-core, rust-std]}
+}
+
+definition{
+  name: passes,
+  parameters: [check : Check],
+  result: Bool,
+  body: (match check | Check.Pass => true | Check.Fail => false),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: isReady,
+  parameters: [verdict : Verdict],
+  result: Bool,
+  body: (match verdict | Verdict.Ready => true | Verdict.Refused reason => false),
+  axioms: [],
+  executable: true
+}
+
+theorem{
+  name: gate_ready_exactly,
+  parameters: [address : Check, compiled : Check, vectors : Check],
+  statement: ((isReady (gate address compiled vectors)) = ((passes address) && ((passes compiled) && (passes vectors)))),
+  proof: cases{
+    branches: [
+      {
+        proof: cases{
+          branches: [
+            {
+              proof: cases{
+                branches: [
+                  {proof: reflexivity{}, binders: [], constructor: Pass},
+                  {proof: reflexivity{}, binders: [], constructor: Fail}
+                ],
+                scrutinee: vectors
+              },
+              binders: [],
+              constructor: Pass
+            },
+            {proof: reflexivity{}, binders: [], constructor: Fail}
+          ],
+          scrutinee: compiled
+        },
+        binders: [],
+        constructor: Pass
+      },
+      {proof: reflexivity{}, binders: [], constructor: Fail}
+    ],
+    scrutinee: address
+  },
+  axioms: []
+}
+
+theorem{
+  name: hash_mismatch_is_reported_first,
+  parameters: [compiled : Check, vectors : Check],
+  statement: ((gate (ctor Check.Fail) compiled vectors) = (ctor Verdict.Refused (ctor Refusal.HashMismatch))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: failed_check_is_reported_before_vectors,
+  parameters: [vectors : Check],
+  statement: ((gate (ctor Check.Pass) (ctor Check.Fail) vectors) = (ctor Verdict.Refused (ctor Refusal.CheckFailed))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: no_vectors_never_pass,
+  parameters: [passed : UInt32],
+  statement: ((vectorsPass passed (0 : UInt32)) = (ctor Check.Fail)),
+  proof: reflexivity{},
+  axioms: []
+}
+
+definition{
+  name: addresses,
+  parameters: [entries : (List Entry)],
+  result: (List String),
+  body: (match entries
+    | List.nil => (nil String)
+    | List.cons entry rest => (cons (project entry address) (addresses rest))),
+  axioms: [],
+  executable: true,
+  recursive_argument: entries
+}
+
+definition{
+  name: fieldAt,
+  parameters: [fields : (List String), position : Nat],
+  result: String,
+  body: (match (prim index fields position : (Option String)) | Option.none => "" | Option.some text => text),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: decodeEntry,
+  parameters: [text : String],
+  result: (Option Entry),
+  body: (match (prim split_exact text ";" (4 : UInt32) : (Option (List String)))
+    | Option.none => (ctor Option.none [Entry])
+    | Option.some parts => (if ((prim length parts : Nat) =? 4) then (match (prim parse_decimal (fieldAt parts 3) : (Option UInt64))
+      | Option.none => (ctor Option.none [Entry])
+      | Option.some size => (ctor Option.some [Entry] (record Entry {address := (fieldAt parts 0), name := (fieldAt parts 1), keywords := (fieldAt parts 2), size := size}))) else (ctor Option.none [Entry]))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: decodeEntries,
+  parameters: [texts : (List String)],
+  result: (Option (List Entry)),
+  body: (match texts
+    | List.nil => (ctor Option.some [(List Entry)] (nil Entry))
+    | List.cons text rest => (match (decodeEntry text)
+      | Option.none => (ctor Option.none [(List Entry)])
+      | Option.some entry => (match (decodeEntries rest)
+        | Option.none => (ctor Option.none [(List Entry)])
+        | Option.some entries => (ctor Option.some [(List Entry)] (cons entry entries))))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true,
+  recursive_argument: texts
+}
+
+definition{
+  name: lookup,
+  parameters: [key : String, values : (List FieldValue)],
+  result: (Option String),
+  body: (match values
+    | List.nil => (ctor Option.none [String])
+    | List.cons entry rest => (if (prim equal (project entry id) key : Bool) then (ctor Option.some [String] (project entry value)) else (lookup key rest))),
+  executable: true,
+  recursive_argument: values
+}
+
+definition{
+  name: say,
+  parameters: [message : String, tone : Tone],
+  result: Reply,
+  body: (record Reply {text := message, tone := tone}),
+  executable: true
+}
+
+definition{
+  name: member,
+  parameters: [key : String, keys : (List String)],
+  result: Bool,
+  body: (match keys
+    | List.nil => false
+    | List.cons head rest => (if (prim equal key head : Bool) then true else (member key rest))),
+  executable: true,
+  recursive_argument: keys
+}
+
+definition{
+  name: distinct,
+  parameters: [keys : (List String)],
+  result: Bool,
+  body: (match keys
+    | List.nil => true
+    | List.cons head rest => (if (member head rest) then false else (distinct rest))),
+  executable: true,
+  recursive_argument: keys
+}
+
+definition{
+  name: allMembers,
+  parameters: [keys : (List String), within : (List String)],
+  result: Bool,
+  body: (match keys
+    | List.nil => true
+    | List.cons head rest => ((member head within) && (allMembers rest within))),
+  executable: true,
+  recursive_argument: keys
+}
+
+definition{
+  name: offers,
+  parameters: [key : String, options : (List ChoiceOption)],
+  result: Bool,
+  body: (match options
+    | List.nil => false
+    | List.cons option rest => (if (prim equal (project option id) key : Bool) then true else (offers key rest))),
+  executable: true,
+  recursive_argument: options
+}
+
+definition{
+  name: noted,
+  parameters: [facts : Facts, key : String, isOutput : Bool, valid : Bool],
+  result: Facts,
+  body: (record Facts {ids := (cons key (project facts ids)), outputs := (if isOutput then (cons key (project facts outputs)) else (project facts outputs)), choicesValid := ((project facts choicesValid) && valid)}),
+  executable: true
+}
+
+definition{
+  name: collect,
+  parameters: [fuel : Nat, nodes : (List Node), facts : Facts],
+  result: (Option Facts),
+  body: (match fuel
+    | Nat.zero => (match nodes | List.nil => (ctor Option.some [Facts] facts) | List.cons node rest => (ctor Option.none [Facts]))
+    | Nat.succ less => (match nodes
+      | List.nil => (ctor Option.some [Facts] facts)
+      | List.cons node rest => (match node
+        | Node.Heading words => (collect less rest facts)
+        | Node.Action words => (collect less rest facts)
+        | Node.Field field => (collect less rest (noted facts (project field id) false true))
+        | Node.Choice choice => (collect less rest (noted facts (project choice id) false (offers (project choice initial) (project choice options))))
+        | Node.Output key => (collect less rest (noted facts key true true))
+        | Node.Row children => (match (collect less children facts)
+          | Option.none => (ctor Option.none [Facts])
+          | Option.some inner => (collect less rest inner))
+        | Node.Stack children => (match (collect less children facts)
+          | Option.none => (ctor Option.none [Facts])
+          | Option.some inner => (collect less rest inner))))),
+  executable: true,
+  recursive_argument: fuel
+}
+
+definition{
+  name: screenFacts,
+  parameters: [screen : Screen],
+  result: (Option Facts),
+  body: (collect 64 (project screen body) (record Facts {ids := (nil String), outputs := (nil String), choicesValid := true})),
+  executable: true
+}
+
+definition{
+  name: choicesValid,
+  parameters: [screen : Screen],
+  result: Bool,
+  body: (match (screenFacts screen) | Option.none => false | Option.some found => (project found choicesValid)),
+  executable: true
+}
+
+definition{
+  name: idsUnique,
+  parameters: [screen : Screen],
+  result: Bool,
+  body: (match (screenFacts screen) | Option.none => false | Option.some found => (distinct (project found ids))),
+  executable: true
+}
+
+definition{
+  name: outputIds,
+  parameters: [outputs : (List OutputValue)],
+  result: (List String),
+  body: (match outputs
+    | List.nil => (nil String)
+    | List.cons output rest => (cons (project output id) (outputIds rest))),
+  executable: true,
+  recursive_argument: outputs
+}
+
+definition{
+  name: declares,
+  parameters: [screen : Screen, written : (List String)],
+  result: Bool,
+  body: (match (screenFacts screen) | Option.none => false | Option.some found => (allMembers written (project found outputs))),
+  executable: true
+}
+
+definition{
+  name: shortAddress,
+  parameters: [address : String],
+  result: String,
+  body: (match (prim slice (prim utf8_encode address : Bytes) 0 8 : (Option Bytes))
+    | Option.none => address
+    | Option.some head => (match (prim utf8_decode head : (Option String)) | Option.none => address | Option.some text => text)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: listing,
+  parameters: [entry : Entry],
+  result: String,
+  body: (prim join (cons (project entry name) (cons (prim join (cons "sha256" (cons (shortAddress (project entry address)) (nil String))) ":" : String) (nil String))) " " : String),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: listings,
+  parameters: [entries : (List Entry)],
+  result: (List String),
+  body: (match entries
+    | List.nil => (nil String)
+    | List.cons entry rest => (cons (listing entry) (listings rest))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true,
+  recursive_argument: entries
+}
+
+definition{
+  name: indexOf,
+  parameters: [values : (List FieldValue)],
+  result: (List Entry),
+  body: (match (lookup "index" values)
+    | Option.none => (nil Entry)
+    | Option.some text => (match (prim split_exact text "\n" (4096 : UInt32) : (Option (List String)))
+      | Option.none => (nil Entry)
+      | Option.some lines => (match (decodeEntries lines) | Option.none => (nil Entry) | Option.some entries => entries))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: answerFor,
+  parameters: [text : String, entries : (List Entry)],
+  result: Reply,
+  body: (match (classify text)
+    | Input.Blank => (say "" (ctor Tone.Neutral))
+    | Input.Address prefix => (match (resolve entries prefix)
+      | Resolution.Found entry => (say (prim join (cons "Open " (cons (project entry name) (cons " · sha256:" (cons (shortAddress (project entry address)) (nil String))))) "" : String) (ctor Tone.Ok))
+      | Resolution.Ambiguous => (say "This prefix matches more than one model; type more digits." (ctor Tone.Error))
+      | Resolution.Missing => (say "No model at this digest." (ctor Tone.Error)))
+    | Input.Query query => (match (search entries query)
+      | List.nil => (say (prim join (cons "No app named “" (cons query (cons "”." (nil String)))) "" : String) (ctor Tone.Error))
+      | List.cons found more => (say (prim join (listings (search entries query)) " · " : String) (ctor Tone.Ok)))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: holoSearchScreen,
+  parameters: [],
+  result: Screen,
+  body: (record Screen {title := "Holo Search", theme := (record Theme {ratio := "1.618", typeScale := (cons 13 (cons 16 (cons 26 (cons 42 (cons 68 (cons 110 (nil Nat))))))), spaceScale := (cons 5 (cons 8 (cons 13 (cons 21 (cons 34 (cons 55 (cons 89 (nil Nat)))))))), width := 610, control := 55, background := "#1f1f1e", surface := "#303134", foreground := "#e8eaed", muted := "#9aa0a6", line := "#3a3a37", accent := "#8ab4f8", positive := "#81c995", negative := "#f2867d"}), body := (cons (ctor Node.Stack (cons (ctor Node.Heading "Holo Search") (cons (ctor Node.Field (record FieldNode {id := "q", label := "Search", kind := (ctor FieldKind.Text), placeholder := "Search self-verifying apps"})) (cons (ctor Node.Output "result") (nil Node))))) (nil Node))}),
+  executable: true
+}
+
+definition{
+  name: respond,
+  parameters: [values : (List FieldValue)],
+  result: (List OutputValue),
+  body: (let reply : Reply := (answerFor (match (lookup "q" values) | Option.none => "" | Option.some text => text) (indexOf values)); (cons (record OutputValue {id := "result", text := (project reply text), tone := (project reply tone)}) (nil OutputValue))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true,
+  production: {effects: [allocation, overflow, recursion], targets: [rust-std]}
+}
+
+definition{
+  name: application,
+  parameters: [],
+  result: Application,
+  body: (record Application {name := "Holo Search", contract := "prism-screen/1", screen := (holoSearchScreen), acceptanceVectors := (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := ""}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "", tone := (ctor Tone.Neutral)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "calc"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800 · Calculator sha256:fe055fd1", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "CALC"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800 · Calculator sha256:fe055fd1", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "notes"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\nd94ed80011111111111111111111111111111111111111111111111111111111;Notes;notes;1000"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Notes sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "zzz"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No app named “zzz”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed800a3"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "sha256:fe055fd1"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:fe055fd1", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "https://example.org/?r=d94ed800a3&runtime=x"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed800"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\nd94ed80011111111111111111111111111111111111111111111111111111111;Notes;notes;1000"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "This prefix matches more than one model; type more digits.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "deadbeef"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No model at this digest.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed80"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "D94ED800"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "calc"}) (nil FieldValue)), expected := (cons (record OutputValue {id := "result", text := "No app named “calc”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db446620286720"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No app named “d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db446620286720”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (nil AcceptanceVector)))))))))))))))}),
+  executable: true,
+  production: {effects: [allocation], targets: [rust-std]}
+}
+
+theorem{
+  name: every_initial_choice_is_offered,
+  parameters: [],
+  statement: ((choicesValid (holoSearchScreen)) = true),
+  proof: decide{},
+  axioms: []
+}
+
+theorem{
+  name: ids_are_unique,
+  parameters: [],
+  statement: ((idsUnique (holoSearchScreen)) = true),
+  proof: decide{},
+  axioms: []
+}
+
+theorem{
+  name: respond_writes_declared_outputs,
+  parameters: [values : (List FieldValue)],
+  statement: ((declares (holoSearchScreen) (outputIds (respond values))) = true),
+  proof: reflexivity{},
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

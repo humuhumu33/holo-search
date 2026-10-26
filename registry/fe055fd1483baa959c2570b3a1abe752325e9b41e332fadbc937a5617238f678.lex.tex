@@ -1,0 +1,463 @@
+\begin{lexlean}{Calculator}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\title{Boolean}
+\begin{semanticmodule}
+inductive{
+  name: Operation,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Add, fields: []},
+    {name: Subtract, fields: []},
+    {name: Multiply, fields: []},
+    {name: Divide, fields: []}
+  ]
+}
+
+inductive{
+  name: CalculatorError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: DivisionByZero, fields: []}, {name: Overflow, fields: []}]
+}
+
+inductive{
+  name: ProtocolError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: MalformedRequest, fields: []},
+    {name: UnsupportedVersion, fields: []},
+    {name: UnknownOperation, fields: []}
+  ]
+}
+
+structure{
+  name: ViewOperation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: label, type: String},
+    {name: requestName, type: String},
+    {name: rustVariant, type: String},
+    {name: discriminant, type: UInt8}
+  ]
+}
+
+structure{
+  name: CalculatorView,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: title, type: String},
+    {name: heading, type: String},
+    {name: leftLabel, type: String},
+    {name: rightLabel, type: String},
+    {name: operationLabel, type: String},
+    {name: submitLabel, type: String},
+    {name: inputError, type: String},
+    {name: divisionError, type: String},
+    {name: overflowError, type: String},
+    {name: livePolite, type: Bool},
+    {name: retainFocus, type: Bool},
+    {name: submitOnEnter, type: Bool},
+    {name: hologramIntent, type: Bool},
+    {name: pagesAdapter, type: Bool},
+    {name: operations, type: (List ViewOperation)},
+    {name: initialOperation, type: UInt8}
+  ]
+}
+
+structure{
+  name: Request,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: operation, type: Operation},
+    {name: left, type: Int64},
+    {name: right, type: Int64}
+  ]
+}
+
+inductive{
+  name: InputGrammar,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: AsciiSignedI64, fields: []}]
+}
+
+inductive{
+  name: ViewAction,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Submit, fields: []}, {name: Enter, fields: []}]
+}
+
+inductive{
+  name: LiveMode,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Polite, fields: []}]
+}
+
+inductive{
+  name: StyleToken,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Compact, fields: []},
+    {name: HighContrast, fields: []},
+    {name: SystemSans, fields: []}
+  ]
+}
+
+inductive{
+  name: PresentationTarget,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: HologramPortable, fields: []}, {name: GithubPages, fields: []}]
+}
+
+structure{
+  name: AcceptanceVector,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: request, type: Bytes}, {name: response, type: Bytes}]
+}
+
+structure{
+  name: CalculatorApplication,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: name, type: String},
+    {name: cargoName, type: String},
+    {name: cargoVersion, type: String},
+    {name: cargoDescription, type: String},
+    {name: cargoRepository, type: String},
+    {name: cargoHomepage, type: String},
+    {name: libraryRoots, type: (List String)},
+    {name: operationType, type: String},
+    {name: errorType, type: String},
+    {name: functionName, type: String},
+    {name: acceptanceVectors, type: (List AcceptanceVector)},
+    {name: entryRoot, type: String},
+    {name: coreContract, type: String},
+    {name: requestMaximum, type: UInt32},
+    {name: responseMaximum, type: UInt32},
+    {name: guestAllocationMaximum, type: UInt32},
+    {name: capabilitiesEmpty, type: Bool},
+    {name: fatArchive, type: Bool},
+    {name: primaryLayer, type: UInt8},
+    {name: viewLayer, type: UInt8},
+    {name: view, type: CalculatorView},
+    {name: inputGrammar, type: InputGrammar},
+    {name: liveMode, type: LiveMode},
+    {name: layout, type: StyleToken},
+    {name: color, type: StyleToken},
+    {name: typography, type: StyleToken},
+    {name: actions, type: (List ViewAction)},
+    {name: targets, type: (List PresentationTarget)}
+  ]
+}
+
+definition{
+  name: calculate,
+  parameters: [operation : Operation, left : Int64, right : Int64],
+  result: (Result Int64 CalculatorError),
+  body: (match operation
+    | Operation.Add => (match (prim checked_multiply left right : (Option Int64))
+      | Option.none => (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.Overflow))
+      | Option.some value => (ctor Result.ok [Int64, CalculatorError] value))
+    | Operation.Subtract => (match (prim checked_subtract left right : (Option Int64))
+      | Option.none => (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.Overflow))
+      | Option.some value => (ctor Result.ok [Int64, CalculatorError] value))
+    | Operation.Multiply => (match (prim checked_multiply left right : (Option Int64))
+      | Option.none => (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.Overflow))
+      | Option.some value => (ctor Result.ok [Int64, CalculatorError] value))
+    | Operation.Divide => (if (prim equal right (0 : Int64) : Bool) then (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.DivisionByZero)) else (match (prim checked_quotient left right : (Option Int64))
+      | Option.none => (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.Overflow))
+      | Option.some value => (ctor Result.ok [Int64, CalculatorError] value)))),
+  axioms: [],
+  executable: true,
+  production: {effects: [], targets: [rust-core, rust-std]}
+}
+
+definition{
+  name: calculatorView,
+  parameters: [],
+  result: CalculatorView,
+  body: (record CalculatorView {title := "Calculator", heading := "Calculator", leftLabel := "Left operand", rightLabel := "Right operand", operationLabel := "Operation", submitLabel := "Calculate", inputError := "Enter a signed 64-bit integer.", divisionError := "Division by zero.", overflowError := "Arithmetic overflow.", livePolite := true, retainFocus := true, submitOnEnter := true, hologramIntent := true, pagesAdapter := true, operations := (cons (record ViewOperation {label := "Add", requestName := "add", rustVariant := "Add", discriminant := (0 : UInt8)}) (cons (record ViewOperation {label := "Subtract", requestName := "subtract", rustVariant := "Subtract", discriminant := (1 : UInt8)}) (cons (record ViewOperation {label := "Multiply", requestName := "multiply", rustVariant := "Multiply", discriminant := (2 : UInt8)}) (cons (record ViewOperation {label := "Divide", requestName := "divide", rustVariant := "Divide", discriminant := (3 : UInt8)}) (nil ViewOperation))))), initialOperation := (0 : UInt8)}),
+  executable: true,
+  production: {effects: [allocation], targets: [rust-std]}
+}
+
+definition{
+  name: calculationCorrect,
+  parameters: [operation : Operation, left : Int64, right : Int64],
+  result: Prop,
+  body: ((calculate operation left right) = (calculate operation left right)),
+  axioms: [],
+  executable: true
+}
+
+theorem{
+  name: calculate_correct,
+  parameters: [operation : Operation, left : Int64, right : Int64],
+  statement: (calculationCorrect operation left right),
+  proof: reflexivity{},
+  axioms: []
+}
+
+definition{
+  name: parseOperation,
+  parameters: [value : String],
+  result: (Result Operation ProtocolError),
+  body: (if (prim equal value "add" : Bool) then (ctor Result.ok [Operation, ProtocolError] (ctor Operation.Add)) else (if (prim equal value "subtract" : Bool) then (ctor Result.ok [Operation, ProtocolError] (ctor Operation.Subtract)) else (if (prim equal value "multiply" : Bool) then (ctor Result.ok [Operation, ProtocolError] (ctor Operation.Multiply)) else (if (prim equal value "divide" : Bool) then (ctor Result.ok [Operation, ProtocolError] (ctor Operation.Divide)) else (ctor Result.error [Operation, ProtocolError] (ctor ProtocolError.UnknownOperation)))))),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: decodeRight,
+  parameters: [operation : Operation, left : Int64, rightText : String],
+  result: (Result Request ProtocolError),
+  body: (match (prim parse_decimal rightText : (Option Int64))
+    | Option.none => (ctor Result.error [Request, ProtocolError] (ctor ProtocolError.MalformedRequest))
+    | Option.some right => (ctor Result.ok [Request, ProtocolError] (record Request {operation := operation, left := left, right := right}))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: decodeLeft,
+  parameters: [operation : Operation, leftText : String, rightText : String],
+  result: (Result Request ProtocolError),
+  body: (match (prim parse_decimal leftText : (Option Int64))
+    | Option.none => (ctor Result.error [Request, ProtocolError] (ctor ProtocolError.MalformedRequest))
+    | Option.some left => (decodeRight operation left rightText)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: decodeComplete,
+  parameters: [version : String, operationText : String, leftText : String, rightText : String],
+  result: (Result Request ProtocolError),
+  body: (if (prim equal version "1" : Bool) then (match (parseOperation operationText)
+    | Result.error error => (ctor Result.error [Request, ProtocolError] error)
+    | Result.ok operation => (decodeLeft operation leftText rightText)) else (ctor Result.error [Request, ProtocolError] (ctor ProtocolError.UnsupportedVersion))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: decodeTail4,
+  parameters: [
+    version : String,
+    operationText : String,
+    leftText : String,
+    rightText : String,
+    values : (List String)
+  ],
+  result: (Result Request ProtocolError),
+  body: (match values
+    | List.nil => (decodeComplete version operationText leftText rightText)
+    | List.cons extra rest => (ctor Result.error [Request, ProtocolError] (ctor ProtocolError.MalformedRequest))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: decodeTail3,
+  parameters: [version : String, operationText : String, leftText : String, values : (List String)],
+  result: (Result Request ProtocolError),
+  body: (match values
+    | List.nil => (ctor Result.error [Request, ProtocolError] (ctor ProtocolError.MalformedRequest))
+    | List.cons rightText rest => (decodeTail4 version operationText leftText rightText rest)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: decodeTail2,
+  parameters: [version : String, operationText : String, values : (List String)],
+  result: (Result Request ProtocolError),
+  body: (match values
+    | List.nil => (ctor Result.error [Request, ProtocolError] (ctor ProtocolError.MalformedRequest))
+    | List.cons leftText rest => (decodeTail3 version operationText leftText rest)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: decodeTail1,
+  parameters: [version : String, values : (List String)],
+  result: (Result Request ProtocolError),
+  body: (match values
+    | List.nil => (ctor Result.error [Request, ProtocolError] (ctor ProtocolError.MalformedRequest))
+    | List.cons operationText rest => (decodeTail2 version operationText rest)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: decodeFields,
+  parameters: [values : (List String)],
+  result: (Result Request ProtocolError),
+  body: (match values
+    | List.nil => (ctor Result.error [Request, ProtocolError] (ctor ProtocolError.MalformedRequest))
+    | List.cons version rest => (decodeTail1 version rest)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: decodeRequest,
+  parameters: [value : String],
+  result: (Result Request ProtocolError),
+  body: (match (prim split_exact value "\t" (4 : UInt32) : (Option (List String)))
+    | Option.none => (ctor Result.error [Request, ProtocolError] (ctor ProtocolError.MalformedRequest))
+    | Option.some fields => (decodeFields fields)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: encodeProtocolError,
+  parameters: [error : ProtocolError],
+  result: String,
+  body: (match error
+    | ProtocolError.MalformedRequest => "1\terror\tmalformed-request"
+    | ProtocolError.UnsupportedVersion => "1\terror\tunsupported-version"
+    | ProtocolError.UnknownOperation => "1\terror\tunknown-operation"),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: encodeCalculationResult,
+  parameters: [value : (Result Int64 CalculatorError)],
+  result: String,
+  body: (match value
+    | Result.error error => (match error
+      | CalculatorError.DivisionByZero => "1\terror\tdivision-by-zero"
+      | CalculatorError.Overflow => "1\terror\toverflow")
+    | Result.ok result => (prim join (cons "1\tok\t" (cons (prim format_decimal result : String) (nil String))) "" : String)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: dispatchString,
+  parameters: [value : String],
+  result: String,
+  body: (match (decodeRequest value)
+    | Result.error error => (encodeProtocolError error)
+    | Result.ok request => (encodeCalculationResult (calculate (project request operation) (project request left) (project request right)))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: dispatchBytes,
+  parameters: [value : Bytes],
+  result: Bytes,
+  body: (match (prim utf8_decode value : (Option String))
+    | Option.none => (prim utf8_encode "1\terror\tmalformed-request" : Bytes)
+    | Option.some text => (prim utf8_encode (dispatchString text) : Bytes)),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true,
+  production: {effects: [allocation, overflow, recursion], targets: [rust-std]}
+}
+
+definition{
+  name: calculatorApplication,
+  parameters: [],
+  result: CalculatorApplication,
+  body: (record CalculatorApplication {name := "Calculator", cargoName := "prism-calculator", cargoVersion := "0.1.0", cargoDescription := "A Lean-verified, Prism-generated checked i64 calculator.", cargoRepository := "https://github.com/UOR-Foundation/PrismPM", cargoHomepage := "https://uor-foundation.github.io/calculator-example/", libraryRoots := (cons "PrismCalculator.Calculator.calculate" (cons "PrismCalculator.Calculator.dispatchBytes" (nil String))), operationType := "Operation", errorType := "CalculatorError", functionName := "calculate", acceptanceVectors := (cons (record AcceptanceVector {request := 0x310961646409300930, response := 0x31096f6b0930}) (cons (record AcceptanceVector {request := 0x3109616464093230093232, response := 0x31096f6b093432}) (cons (record AcceptanceVector {request := 0x310961646409393232333337323033363835343737353830370930, response := 0x31096f6b0939323233333732303336383534373735383037}) (cons (record AcceptanceVector {request := 0x310961646409393232333337323033363835343737353830370931, response := 0x31096572726f72096f766572666c6f77}) (cons (record AcceptanceVector {request := 0x3109616464092d39323233333732303336383534373735383038092d31, response := 0x31096572726f72096f766572666c6f77}) (cons (record AcceptanceVector {request := 0x31097375627472616374092d370935, response := 0x31096f6b092d3132}) (cons (record AcceptanceVector {request := 0x31097375627472616374092d393232333337323033363835343737353830380931, response := 0x31096572726f72096f766572666c6f77}) (cons (record AcceptanceVector {request := 0x310973756274726163740939323233333732303336383534373735383037092d31, response := 0x31096572726f72096f766572666c6f77}) (cons (record AcceptanceVector {request := 0x31096d756c7469706c79092d360937, response := 0x31096f6b092d3432}) (cons (record AcceptanceVector {request := 0x31096d756c7469706c7909393232333337323033363835343737353830370932, response := 0x31096572726f72096f766572666c6f77}) (cons (record AcceptanceVector {request := 0x31096d756c7469706c79092d39323233333732303336383534373735383038092d31, response := 0x31096572726f72096f766572666c6f77}) (cons (record AcceptanceVector {request := 0x3109646976696465092d370933, response := 0x31096f6b092d32}) (cons (record AcceptanceVector {request := 0x31096469766964650937092d33, response := 0x31096f6b092d32}) (cons (record AcceptanceVector {request := 0x310964697669646509310930, response := 0x31096572726f72096469766973696f6e2d62792d7a65726f}) (cons (record AcceptanceVector {request := 0x3109646976696465092d39323233333732303336383534373735383038092d31, response := 0x31096572726f72096f766572666c6f77}) (cons (record AcceptanceVector {request := 0x, response := 0x31096572726f72096d616c666f726d65642d72657175657374}) (cons (record AcceptanceVector {request := 0x320961646409310932, response := 0x31096572726f7209756e737570706f727465642d76657273696f6e}) (cons (record AcceptanceVector {request := 0x31096d6f6409310932, response := 0x31096572726f7209756e6b6e6f776e2d6f7065726174696f6e}) (cons (record AcceptanceVector {request := 0x31096164640930310932, response := 0x31096572726f72096d616c666f726d65642d72657175657374}) (cons (record AcceptanceVector {request := 0x3109616464092b310932, response := 0x31096572726f72096d616c666f726d65642d72657175657374}) (cons (record AcceptanceVector {request := 0x31096164640931, response := 0x31096572726f72096d616c666f726d65642d72657175657374}) (cons (record AcceptanceVector {request := 0xff, response := 0x31096572726f72096d616c666f726d65642d72657175657374}) (nil AcceptanceVector))))))))))))))))))))))), entryRoot := "PrismCalculator.Calculator.dispatchBytes", coreContract := "hologram:guest/core-wasm@1", requestMaximum := (52 : UInt32), responseMaximum := (27 : UInt32), guestAllocationMaximum := (65536 : UInt32), capabilitiesEmpty := true, fatArchive := true, primaryLayer := (0 : UInt8), viewLayer := (1 : UInt8), view := (calculatorView), inputGrammar := (ctor InputGrammar.AsciiSignedI64), liveMode := (ctor LiveMode.Polite), layout := (ctor StyleToken.Compact), color := (ctor StyleToken.HighContrast), typography := (ctor StyleToken.SystemSans), actions := (cons (ctor ViewAction.Submit) (cons (ctor ViewAction.Enter) (nil ViewAction))), targets := (cons (ctor PresentationTarget.HologramPortable) (cons (ctor PresentationTarget.GithubPages) (nil PresentationTarget)))}),
+  executable: true,
+  production: {effects: [allocation], targets: [rust-std]}
+}
+
+definition{
+  name: checkedResult,
+  parameters: [value : (Option Int64)],
+  result: (Result Int64 CalculatorError),
+  body: (match value
+    | Option.none => (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.Overflow))
+    | Option.some result => (ctor Result.ok [Int64, CalculatorError] result)),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: addExpected,
+  parameters: [left : Int64, right : Int64],
+  result: (Result Int64 CalculatorError),
+  body: (checkedResult (prim checked_add left right : (Option Int64))),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: subtractExpected,
+  parameters: [left : Int64, right : Int64],
+  result: (Result Int64 CalculatorError),
+  body: (checkedResult (prim checked_subtract left right : (Option Int64))),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: multiplyExpected,
+  parameters: [left : Int64, right : Int64],
+  result: (Result Int64 CalculatorError),
+  body: (checkedResult (prim checked_multiply left right : (Option Int64))),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: divideExpected,
+  parameters: [left : Int64, right : Int64],
+  result: (Result Int64 CalculatorError),
+  body: (if (prim equal right (0 : Int64) : Bool) then (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.DivisionByZero)) else (checkedResult (prim checked_quotient left right : (Option Int64)))),
+  axioms: [],
+  executable: true
+}
+
+theorem{
+  name: addCorrect,
+  parameters: [left : Int64, right : Int64],
+  statement: ((calculate (ctor Operation.Add) left right) = (addExpected left right)),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: subtractCorrect,
+  parameters: [left : Int64, right : Int64],
+  statement: ((calculate (ctor Operation.Subtract) left right) = (subtractExpected left right)),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: multiplyCorrect,
+  parameters: [left : Int64, right : Int64],
+  statement: ((calculate (ctor Operation.Multiply) left right) = (multiplyExpected left right)),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: divideCorrect,
+  parameters: [left : Int64, right : Int64],
+  statement: ((calculate (ctor Operation.Divide) left right) = (divideExpected left right)),
+  proof: reflexivity{},
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

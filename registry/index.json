@@ -1,0 +1,28 @@
+[
+ {
+  "sha256": "5374374814d6c7f590b33011fe88ca544ad14d3980b0cc27f7e70ae2e64706ad",
+  "module": "CalculatorV2",
+  "bytes": 22572
+ },
+ {
+  "sha256": "84371aaac82af6b2a81a25a81d43d4097892985f55ae4919cfdcfa8b6e3486e7",
+  "blake3": "8408e0895572fab09e783f7aadb129dc4cb96d0b62850a16f3ddbe44ed6021ba",
+  "module": "Calculator (holo)",
+  "bytes": 24801
+ },
+ {
+  "sha256": "9a7f058c1e1b211e9f5f035deaeb82f386d72298b49019217855fea17e8528b3",
+  "module": "HoloSearch",
+  "bytes": 34841
+ },
+ {
+  "sha256": "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672",
+  "module": "Calculator",
+  "bytes": 20611
+ },
+ {
+  "sha256": "fe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678",
+  "module": "Calculator",
+  "bytes": 20616
+ }
+]
