@@ -1,8 +1,19 @@
 [
  {
+  "sha256": "20b0406e8c33f26758e38cc42509a2b3a3d97ede025c89db0d250c437248f070",
+  "module": "HoloSearch",
+  "bytes": 1381,
+  "kind": "image"
+ },
+ {
   "sha256": "5374374814d6c7f590b33011fe88ca544ad14d3980b0cc27f7e70ae2e64706ad",
   "module": "CalculatorV2",
   "bytes": 22572
+ },
+ {
+  "sha256": "691e1854681cc1b5d94549348c1eb604e01e8ca7c9ada83e444984cce905c489",
+  "module": "HoloSearch",
+  "bytes": 46250
  },
  {
   "sha256": "84371aaac82af6b2a81a25a81d43d4097892985f55ae4919cfdcfa8b6e3486e7",
@@ -11,9 +22,21 @@
   "bytes": 24801
  },
  {
+  "sha256": "91a402e64e3207030ec2173c3e9f73bf02dad1d7c9aeadc784572201f183b01d",
+  "module": "Calculator",
+  "bytes": 1074,
+  "kind": "image"
+ },
+ {
   "sha256": "9a7f058c1e1b211e9f5f035deaeb82f386d72298b49019217855fea17e8528b3",
   "module": "HoloSearch",
   "bytes": 34841
+ },
+ {
+  "sha256": "a33570ee424e9bd0cc958fb906f0c846a7dc1eae2adf8408f7cd14784dd5b6b9",
+  "module": "CalculatorV2",
+  "bytes": 831,
+  "kind": "image"
  },
  {
   "sha256": "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672",

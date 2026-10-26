@@ -143,12 +143,26 @@ structure{
 }
 
 inductive{
+  name: Algorithm,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Sha256, fields: []}, {name: Blake3, fields: []}]
+}
+
+structure{
+  name: Located,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: algorithm, type: Algorithm}, {name: digest, type: String}]
+}
+
+inductive{
   name: Input,
   type_parameters: [],
   parameters: [],
   constructors: [
     {name: Blank, fields: []},
-    {name: Address, fields: [String]},
+    {name: Address, fields: [Located]},
     {name: Query, fields: [String]}
   ]
 }
@@ -161,7 +175,8 @@ structure{
     {name: address, type: String},
     {name: name, type: String},
     {name: keywords, type: String},
-    {name: size, type: UInt64}
+    {name: size, type: UInt64},
+    {name: blake3, type: String}
   ]
 }
 
@@ -270,10 +285,108 @@ definition{
 }
 
 definition{
-  name: addressPart,
+  name: startsWith,
+  parameters: [whole : Bytes, start : Bytes],
+  result: Bool,
+  body: (match (prim slice whole 0 (prim length start : Nat) : (Option Bytes))
+    | Option.none => false
+    | Option.some head => (prim equal head start : Bool)),
+  axioms: [],
+  executable: true
+}
+
+definition{
+  name: linkPart,
   parameters: [text : String],
   result: String,
-  body: (beforeDelimiter (afterDelimiter (afterDelimiter (afterDelimiter text "sha256:") "sha256=") "r=") "&"),
+  body: (beforeDelimiter (afterDelimiter (afterDelimiter text "sha256=") "r=") "&"),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: base32Letters,
+  parameters: [],
+  result: (List Bytes),
+  body: (cons 0x61 (cons 0x62 (cons 0x63 (cons 0x64 (cons 0x65 (cons 0x66 (cons 0x67 (cons 0x68 (cons 0x69 (cons 0x6a (cons 0x6b (cons 0x6c (cons 0x6d (cons 0x6e (cons 0x6f (cons 0x70 (cons 0x71 (cons 0x72 (cons 0x73 (cons 0x74 (cons 0x75 (cons 0x76 (cons 0x77 (cons 0x78 (cons 0x79 (cons 0x7a (cons 0x32 (cons 0x33 (cons 0x34 (cons 0x35 (cons 0x36 (cons 0x37 (nil Bytes))))))))))))))))))))))))))))))))),
+  executable: true
+}
+
+definition{
+  name: base32Value,
+  parameters: [digit : Bytes, letters : (List Bytes), position : Nat],
+  result: (Option Nat),
+  body: (match letters
+    | List.nil => (ctor Option.none [Nat])
+    | List.cons letter rest => (if (prim equal digit letter : Bool) then (ctor Option.some [Nat] position) else (base32Value digit rest (position + 1)))),
+  executable: true,
+  recursive_argument: letters
+}
+
+definition{
+  name: power2,
+  parameters: [exponent : Nat],
+  result: Nat,
+  body: (if (exponent =? 0) then 1 else (if (exponent =? 1) then 2 else (if (exponent =? 2) then 4 else (if (exponent =? 3) then 8 else 16)))),
+  executable: true
+}
+
+definition{
+  name: hexDigit,
+  parameters: [value : Nat],
+  result: String,
+  body: (match (prim index (cons "0" (cons "1" (cons "2" (cons "3" (cons "4" (cons "5" (cons "6" (cons "7" (cons "8" (cons "9" (cons "a" (cons "b" (cons "c" (cons "d" (cons "e" (cons "f" (nil String))))))))))))))))) value : (Option String)) | Option.none => "0" | Option.some digit => digit),
+  executable: true
+}
+
+definition{
+  name: base32Hex,
+  parameters: [bytes : Bytes, position : Nat, remaining : Nat, held : Nat, bits : Nat],
+  result: (Option (List String)),
+  body: (match remaining
+    | Nat.zero => (ctor Option.some [(List String)] (nil String))
+    | Nat.succ rest => (match (prim slice bytes position 1 : (Option Bytes))
+      | Option.none => (ctor Option.none [(List String)])
+      | Option.some digit => (match (base32Value digit (base32Letters) 0)
+        | Option.none => (ctor Option.none [(List String)])
+        | Option.some value => (let total : Nat := ((prim multiply held 32 : Nat) + value); (let shift : Nat := (prim subtract (bits + 5) 4 : Nat); (let scale : Nat := (power2 shift); (let high : Nat := (prim quotient total scale 0 : Nat); (let low : Nat := (prim remainder total scale 0 : Nat); (if (4 <=? shift) then (match (base32Hex bytes (position + 1) rest 0 0)
+          | Option.none => (ctor Option.none [(List String)])
+          | Option.some tail => (ctor Option.some [(List String)] (cons (hexDigit high) (cons (hexDigit low) tail)))) else (match (base32Hex bytes (position + 1) rest low shift)
+          | Option.none => (ctor Option.none [(List String)])
+          | Option.some tail => (ctor Option.some [(List String)] (cons (hexDigit high) tail)))))))))))),
+  executable: true,
+  recursive_argument: remaining
+}
+
+definition{
+  name: cidDigest,
+  parameters: [text : String],
+  result: (Option Located),
+  body: (let bytes : Bytes := (prim utf8_encode text : Bytes); (if ((prim length bytes : Nat) =? 59) then (if (startsWith bytes 0x62) then (match (base32Hex bytes 1 58 0 0)
+    | Option.none => (ctor Option.none [Located])
+    | Option.some nibbles => (match (prim slice nibbles 0 8 : (Option (List String)))
+      | Option.none => (ctor Option.none [Located])
+      | Option.some head => (match (prim slice nibbles 8 64 : (Option (List String)))
+        | Option.none => (ctor Option.none [Located])
+        | Option.some tail => (let header : String := (prim join head "" : String); (let digest : String := (prim join tail "" : String); (if (prim equal header "01551220" : Bool) then (ctor Option.some [Located] (record Located {algorithm := (ctor Algorithm.Sha256), digest := digest})) else (if (prim equal header "01551e20" : Bool) then (ctor Option.some [Located] (record Located {algorithm := (ctor Algorithm.Blake3), digest := digest})) else (ctor Option.none [Located])))))))) else (ctor Option.none [Located])) else (ctor Option.none [Located]))),
+  axioms: [propext],
+  executable: true
+}
+
+definition{
+  name: prefixed,
+  parameters: [candidate : String, label : String, algorithm : Algorithm],
+  result: (Option Located),
+  body: (let rest : String := (afterDelimiter candidate label); (if (isAddress rest) then (ctor Option.some [Located] (record Located {algorithm := algorithm, digest := rest})) else (ctor Option.none [Located]))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: parseAddress,
+  parameters: [text : String],
+  result: (Option Located),
+  body: (let candidate : String := (linkPart text); (let bytes : Bytes := (prim utf8_encode candidate : Bytes); (if (startsWith bytes (prim utf8_encode "blake3:" : Bytes)) then (prefixed candidate "blake3:" (ctor Algorithm.Blake3)) else (if (startsWith bytes (prim utf8_encode "sha256:" : Bytes)) then (prefixed candidate "sha256:" (ctor Algorithm.Sha256)) else (if (isAddress candidate) then (ctor Option.some [Located] (record Located {algorithm := (ctor Algorithm.Sha256), digest := candidate})) else (cidDigest candidate)))))),
   axioms: [Classical.choice, Quot.sound, propext],
   executable: true
 }
@@ -282,7 +395,9 @@ definition{
   name: classify,
   parameters: [text : String],
   result: Input,
-  body: (if (prim equal text "" : Bool) then (ctor Input.Blank) else (let candidate : String := (addressPart text); (if (isAddress candidate) then (ctor Input.Address candidate) else (ctor Input.Query text)))),
+  body: (if (prim equal text "" : Bool) then (ctor Input.Blank) else (match (parseAddress text)
+    | Option.none => (ctor Input.Query text)
+    | Option.some located => (ctor Input.Address located))),
   axioms: [Classical.choice, Quot.sound, propext],
   executable: true,
   production: {effects: [allocation, overflow, recursion], targets: [rust-std]}
@@ -326,17 +441,6 @@ definition{
 }
 
 definition{
-  name: startsWith,
-  parameters: [whole : Bytes, start : Bytes],
-  result: Bool,
-  body: (match (prim slice whole 0 (prim length start : Nat) : (Option Bytes))
-    | Option.none => false
-    | Option.some head => (prim equal head start : Bool)),
-  axioms: [],
-  executable: true
-}
-
-definition{
   name: containsFrom,
   parameters: [whole : Bytes, part : Bytes, position : Nat, remaining : Nat],
   result: Bool,
@@ -361,35 +465,34 @@ definition{
 
 definition{
   name: matchesAddress,
-  parameters: [prefix : String, entry : Entry],
+  parameters: [located : Located, entry : Entry],
   result: Bool,
-  body: (startsWith (prim utf8_encode (project entry address) : Bytes) (prim utf8_encode prefix : Bytes)),
-  axioms: [],
+  body: (let prefix : Bytes := (prim utf8_encode (project located digest) : Bytes); (match (project located algorithm)
+    | Algorithm.Sha256 => (startsWith (prim utf8_encode (project entry address) : Bytes) prefix)
+    | Algorithm.Blake3 => ((not (prim equal (project entry blake3) "" : Bool)) && (startsWith (prim utf8_encode (project entry blake3) : Bytes) prefix)))),
   executable: true
 }
 
 definition{
   name: withAddress,
-  parameters: [entries : (List Entry), prefix : String],
+  parameters: [entries : (List Entry), located : Located],
   result: (List Entry),
   body: (match entries
     | List.nil => (nil Entry)
-    | List.cons entry rest => (if (matchesAddress prefix entry) then (cons entry (withAddress rest prefix)) else (withAddress rest prefix))),
-  axioms: [],
+    | List.cons entry rest => (if (matchesAddress located entry) then (cons entry (withAddress rest located)) else (withAddress rest located))),
   executable: true,
   recursive_argument: entries
 }
 
 definition{
   name: resolve,
-  parameters: [entries : (List Entry), prefix : String],
+  parameters: [entries : (List Entry), located : Located],
   result: Resolution,
-  body: (let found : (List Entry) := (withAddress entries prefix); (match found
+  body: (let found : (List Entry) := (withAddress entries located); (match found
     | List.nil => (ctor Resolution.Missing)
     | List.cons only rest => (match rest
       | List.nil => (ctor Resolution.Found only)
       | List.cons other more => (ctor Resolution.Ambiguous)))),
-  axioms: [],
   executable: true,
   production: {effects: [allocation, overflow, recursion], targets: [rust-std]}
 }
@@ -398,8 +501,7 @@ definition{
   name: matchesQuery,
   parameters: [query : String, entry : Entry],
   result: Bool,
-  body: ((contains (project entry keywords) query) || (matchesAddress query entry)),
-  axioms: [],
+  body: (let typed : Bytes := (prim utf8_encode query : Bytes); ((contains (project entry keywords) query) || ((startsWith (prim utf8_encode (project entry address) : Bytes) typed) || ((not (prim equal (project entry blake3) "" : Bool)) && (startsWith (prim utf8_encode (project entry blake3) : Bytes) typed))))),
   executable: true
 }
 
@@ -566,11 +668,11 @@ definition{
   name: decodeEntry,
   parameters: [text : String],
   result: (Option Entry),
-  body: (match (prim split_exact text ";" (4 : UInt32) : (Option (List String)))
+  body: (match (prim split_exact text ";" (5 : UInt32) : (Option (List String)))
     | Option.none => (ctor Option.none [Entry])
-    | Option.some parts => (if ((prim length parts : Nat) =? 4) then (match (prim parse_decimal (fieldAt parts 3) : (Option UInt64))
+    | Option.some parts => (let count : Nat := (prim length parts : Nat); (if ((count =? 4) || (count =? 5)) then (match (prim parse_decimal (fieldAt parts 3) : (Option UInt64))
       | Option.none => (ctor Option.none [Entry])
-      | Option.some size => (ctor Option.some [Entry] (record Entry {address := (fieldAt parts 0), name := (fieldAt parts 1), keywords := (fieldAt parts 2), size := size}))) else (ctor Option.none [Entry]))),
+      | Option.some size => (ctor Option.some [Entry] (record Entry {address := (fieldAt parts 0), name := (fieldAt parts 1), keywords := (fieldAt parts 2), size := size, blake3 := (fieldAt parts 4)}))) else (ctor Option.none [Entry])))),
   axioms: [Classical.choice, Quot.sound, propext],
   executable: true
 }
@@ -780,8 +882,8 @@ definition{
   result: Reply,
   body: (match (classify text)
     | Input.Blank => (say "" (ctor Tone.Neutral))
-    | Input.Address prefix => (match (resolve entries prefix)
-      | Resolution.Found entry => (say (prim join (cons "Open " (cons (project entry name) (cons " · sha256:" (cons (shortAddress (project entry address)) (nil String))))) "" : String) (ctor Tone.Ok))
+    | Input.Address located => (match (resolve entries located)
+      | Resolution.Found entry => (say (prim join (cons "Open " (cons (project entry name) (cons (match (project located algorithm) | Algorithm.Sha256 => " · sha256:" | Algorithm.Blake3 => " · blake3:") (cons (shortAddress (match (project located algorithm) | Algorithm.Sha256 => (project entry address) | Algorithm.Blake3 => (project entry blake3))) (nil String))))) "" : String) (ctor Tone.Ok))
       | Resolution.Ambiguous => (say "This prefix matches more than one model; type more digits." (ctor Tone.Error))
       | Resolution.Missing => (say "No model at this digest." (ctor Tone.Error)))
     | Input.Query query => (match (search entries query)
@@ -813,7 +915,7 @@ definition{
   name: application,
   parameters: [],
   result: Application,
-  body: (record Application {name := "Holo Search", contract := "prism-screen/1", screen := (holoSearchScreen), acceptanceVectors := (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := ""}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "", tone := (ctor Tone.Neutral)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "calc"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800 · Calculator sha256:fe055fd1", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "CALC"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800 · Calculator sha256:fe055fd1", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "notes"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\nd94ed80011111111111111111111111111111111111111111111111111111111;Notes;notes;1000"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Notes sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "zzz"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No app named “zzz”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed800a3"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "sha256:fe055fd1"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:fe055fd1", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "https://example.org/?r=d94ed800a3&runtime=x"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed800"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\nd94ed80011111111111111111111111111111111111111111111111111111111;Notes;notes;1000"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "This prefix matches more than one model; type more digits.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "deadbeef"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No model at this digest.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed80"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "D94ED800"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "calc"}) (nil FieldValue)), expected := (cons (record OutputValue {id := "result", text := "No app named “calc”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db446620286720"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No app named “d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db446620286720”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (nil AcceptanceVector)))))))))))))))}),
+  body: (record Application {name := "Holo Search", contract := "prism-screen/1", screen := (holoSearchScreen), acceptanceVectors := (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := ""}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "", tone := (ctor Tone.Neutral)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "calc"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800 · Calculator sha256:fe055fd1", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "CALC"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800 · Calculator sha256:fe055fd1", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "notes"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\nd94ed80011111111111111111111111111111111111111111111111111111111;Notes;notes;1000"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Notes sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "zzz"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No app named “zzz”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed800a3"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "sha256:fe055fd1"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:fe055fd1", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "https://example.org/?r=d94ed800a3&runtime=x"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed800"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\nd94ed80011111111111111111111111111111111111111111111111111111111;Notes;notes;1000"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "This prefix matches more than one model; type more digits.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "deadbeef"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No model at this digest.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed80"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "D94ED800"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "calc"}) (nil FieldValue)), expected := (cons (record OutputValue {id := "result", text := "No app named “calc”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db446620286720"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No app named “d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db446620286720”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "blake3:8408e089"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\n84371aaac82af6b2a81a25a81d43d4097892985f55ae4919cfdcfa8b6e3486e7;Calculator (holo);calculator holo;24801;8408e0895572fab09e783f7aadb129dc4cb96d0b62850a16f3ddbe44ed6021ba"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator (holo) · blake3:8408e089", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "bafkreigzj3mabizjepm3vb43yfva5cyhe7q3jxv62y7oixrnwrdgeaugoi"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator · sha256:d94ed800", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "bafkr4ieebdqisvls7kyj46b7pkw3cko4js4w2c3cqufbn465xzco2ybbxi"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\n84371aaac82af6b2a81a25a81d43d4097892985f55ae4919cfdcfa8b6e3486e7;Calculator (holo);calculator holo;24801;8408e0895572fab09e783f7aadb129dc4cb96d0b62850a16f3ddbe44ed6021ba"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator (holo) · blake3:8408e089", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "https://humuhumu33.github.io/holo-search/?r=blake3:8408e0895572fab0"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\n84371aaac82af6b2a81a25a81d43d4097892985f55ae4919cfdcfa8b6e3486e7;Calculator (holo);calculator holo;24801;8408e0895572fab09e783f7aadb129dc4cb96d0b62850a16f3ddbe44ed6021ba"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Open Calculator (holo) · blake3:8408e089", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "blake3:zz"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No app named “blake3:zz”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "bafkreigzj3mabizjepm3vb43yfva5cyhe7q3jxv62y7oixrnwrdgeaugo1"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "No app named “bafkreigzj3mabizjepm3vb43yfva5cyhe7q3jxv62y7oixrnwrdgeaugo1”.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "holo"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\n84371aaac82af6b2a81a25a81d43d4097892985f55ae4919cfdcfa8b6e3486e7;Calculator (holo);calculator holo;24801;8408e0895572fab09e783f7aadb129dc4cb96d0b62850a16f3ddbe44ed6021ba"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator (holo) sha256:84371aaa", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "q", value := "8408"}) (cons (record FieldValue {id := "index", value := "d94ed800a32923d9ba879bc16a0e8b0727e1b4debed63ee45e2db44662028672;Calculator;calculator;20611\nfe055fd1483baa959c2570b3a1abe752325e9b41e332fadbc937a5617238f678;Calculator;calculator;20616\n84371aaac82af6b2a81a25a81d43d4097892985f55ae4919cfdcfa8b6e3486e7;Calculator (holo);calculator holo;24801;8408e0895572fab09e783f7aadb129dc4cb96d0b62850a16f3ddbe44ed6021ba"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Calculator (holo) sha256:84371aaa", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (nil AcceptanceVector)))))))))))))))))))))))}),
   executable: true,
   production: {effects: [allocation], targets: [rust-std]}
 }

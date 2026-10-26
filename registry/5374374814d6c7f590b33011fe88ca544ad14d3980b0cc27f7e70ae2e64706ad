@@ -1,0 +1,440 @@
+\begin{lexlean}{CalculatorV2}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\title{Boolean}
+\begin{semanticmodule}
+inductive{
+  name: FieldKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Integer, fields: []}, {name: Text, fields: []}]
+}
+
+structure{
+  name: FieldNode,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: label, type: String},
+    {name: kind, type: FieldKind},
+    {name: placeholder, type: String}
+  ]
+}
+
+structure{
+  name: ChoiceOption,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: id, type: String}, {name: label, type: String}, {name: symbol, type: String}]
+}
+
+structure{
+  name: ChoiceNode,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: label, type: String},
+    {name: options, type: (List ChoiceOption)},
+    {name: initial, type: String}
+  ]
+}
+
+inductive{
+  name: Node,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Heading, fields: [String]},
+    {name: Field, fields: [FieldNode]},
+    {name: Choice, fields: [ChoiceNode]},
+    {name: Action, fields: [String]},
+    {name: Output, fields: [String]},
+    {name: Row, fields: [(List Node)]},
+    {name: Stack, fields: [(List Node)]}
+  ]
+}
+
+structure{
+  name: Theme,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: ratio, type: String},
+    {name: typeScale, type: (List Nat)},
+    {name: spaceScale, type: (List Nat)},
+    {name: width, type: Nat},
+    {name: control, type: Nat},
+    {name: background, type: String},
+    {name: surface, type: String},
+    {name: foreground, type: String},
+    {name: muted, type: String},
+    {name: line, type: String},
+    {name: accent, type: String},
+    {name: positive, type: String},
+    {name: negative, type: String}
+  ]
+}
+
+structure{
+  name: Screen,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: title, type: String}, {name: theme, type: Theme}, {name: body, type: (List Node)}]
+}
+
+structure{
+  name: FieldValue,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: id, type: String}, {name: value, type: String}]
+}
+
+inductive{
+  name: Tone,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Neutral, fields: []}, {name: Ok, fields: []}, {name: Error, fields: []}]
+}
+
+structure{
+  name: OutputValue,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: id, type: String}, {name: text, type: String}, {name: tone, type: Tone}]
+}
+
+structure{
+  name: AcceptanceVector,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: given, type: (List FieldValue)}, {name: expected, type: (List OutputValue)}]
+}
+
+structure{
+  name: Application,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: name, type: String},
+    {name: contract, type: String},
+    {name: screen, type: Screen},
+    {name: acceptanceVectors, type: (List AcceptanceVector)}
+  ]
+}
+
+inductive{
+  name: Operation,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Add, fields: []},
+    {name: Subtract, fields: []},
+    {name: Multiply, fields: []},
+    {name: Divide, fields: []}
+  ]
+}
+
+inductive{
+  name: CalculatorError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: DivisionByZero, fields: []}, {name: Overflow, fields: []}]
+}
+
+structure{
+  name: Reply,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: text, type: String}, {name: tone, type: Tone}]
+}
+
+structure{
+  name: Facts,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: ids, type: (List String)},
+    {name: outputs, type: (List String)},
+    {name: choicesValid, type: Bool}
+  ]
+}
+
+definition{
+  name: calculatorScreen,
+  parameters: [],
+  result: Screen,
+  body: (record Screen {title := "Calculator", theme := (record Theme {ratio := "1.618", typeScale := (cons 13 (cons 16 (cons 26 (cons 42 (cons 68 (cons 110 (nil Nat))))))), spaceScale := (cons 5 (cons 8 (cons 13 (cons 21 (cons 34 (cons 55 (cons 89 (nil Nat)))))))), width := 377, control := 55, background := "#1f1f1e", surface := "#262624", foreground := "#ececea", muted := "#9a9a94", line := "#3a3a37", accent := "#8ab4f8", positive := "#5cc27a", negative := "#f2867d"}), body := (cons (ctor Node.Stack (cons (ctor Node.Heading "Calculator") (cons (ctor Node.Field (record FieldNode {id := "left", label := "Left operand", kind := (ctor FieldKind.Integer), placeholder := "20"})) (cons (ctor Node.Choice (record ChoiceNode {id := "operation", label := "Operation", options := (cons (record ChoiceOption {id := "add", label := "Add", symbol := "+"}) (cons (record ChoiceOption {id := "subtract", label := "Subtract", symbol := "−"}) (cons (record ChoiceOption {id := "multiply", label := "Multiply", symbol := "×"}) (cons (record ChoiceOption {id := "divide", label := "Divide", symbol := "÷"}) (nil ChoiceOption))))), initial := "add"})) (cons (ctor Node.Field (record FieldNode {id := "right", label := "Right operand", kind := (ctor FieldKind.Integer), placeholder := "22"})) (cons (ctor Node.Action "Calculate") (cons (ctor Node.Output "result") (nil Node)))))))) (nil Node))}),
+  executable: true
+}
+
+definition{
+  name: calculate,
+  parameters: [operation : Operation, left : Int64, right : Int64],
+  result: (Result Int64 CalculatorError),
+  body: (match operation
+    | Operation.Add => (match (prim checked_add left right : (Option Int64))
+      | Option.none => (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.Overflow))
+      | Option.some value => (ctor Result.ok [Int64, CalculatorError] value))
+    | Operation.Subtract => (match (prim checked_subtract left right : (Option Int64))
+      | Option.none => (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.Overflow))
+      | Option.some value => (ctor Result.ok [Int64, CalculatorError] value))
+    | Operation.Multiply => (match (prim checked_multiply left right : (Option Int64))
+      | Option.none => (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.Overflow))
+      | Option.some value => (ctor Result.ok [Int64, CalculatorError] value))
+    | Operation.Divide => (if (prim equal right (0 : Int64) : Bool) then (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.DivisionByZero)) else (match (prim checked_quotient left right : (Option Int64))
+      | Option.none => (ctor Result.error [Int64, CalculatorError] (ctor CalculatorError.Overflow))
+      | Option.some value => (ctor Result.ok [Int64, CalculatorError] value)))),
+  executable: true
+}
+
+definition{
+  name: lookup,
+  parameters: [key : String, values : (List FieldValue)],
+  result: (Option String),
+  body: (match values
+    | List.nil => (ctor Option.none [String])
+    | List.cons entry rest => (if (prim equal (project entry id) key : Bool) then (ctor Option.some [String] (project entry value)) else (lookup key rest))),
+  executable: true,
+  recursive_argument: values
+}
+
+definition{
+  name: operationOf,
+  parameters: [name : String],
+  result: (Option Operation),
+  body: (if (prim equal name "add" : Bool) then (ctor Option.some [Operation] (ctor Operation.Add)) else (if (prim equal name "subtract" : Bool) then (ctor Option.some [Operation] (ctor Operation.Subtract)) else (if (prim equal name "multiply" : Bool) then (ctor Option.some [Operation] (ctor Operation.Multiply)) else (if (prim equal name "divide" : Bool) then (ctor Option.some [Operation] (ctor Operation.Divide)) else (ctor Option.none [Operation]))))),
+  executable: true
+}
+
+definition{
+  name: say,
+  parameters: [message : String, tone : Tone],
+  result: Reply,
+  body: (record Reply {text := message, tone := tone}),
+  executable: true
+}
+
+definition{
+  name: notANumber,
+  parameters: [written : String],
+  result: Reply,
+  body: (say (prim join (cons "“" (cons written (cons "” is not a 64-bit whole number." (nil String)))) "" : String) (ctor Tone.Error)),
+  axioms: [propext],
+  executable: true
+}
+
+definition{
+  name: present,
+  parameters: [outcome : (Result Int64 CalculatorError)],
+  result: Reply,
+  body: (match outcome
+    | Result.ok value => (say (prim format_decimal value : String) (ctor Tone.Ok))
+    | Result.error error => (match error
+      | CalculatorError.DivisionByZero => (say "Division by zero is undefined." (ctor Tone.Error))
+      | CalculatorError.Overflow => (say "Overflow: the result does not fit in 64 bits." (ctor Tone.Error)))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: withRight,
+  parameters: [operation : Operation, left : Int64, rightText : String],
+  result: Reply,
+  body: (match (prim parse_decimal rightText : (Option Int64))
+    | Option.none => (notANumber rightText)
+    | Option.some right => (present (calculate operation left right))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: withOperands,
+  parameters: [operation : Operation, leftText : String, rightText : String],
+  result: Reply,
+  body: (if ((prim equal leftText "" : Bool) || (prim equal rightText "" : Bool)) then (say "Enter both numbers." (ctor Tone.Error)) else (match (prim parse_decimal leftText : (Option Int64))
+    | Option.none => (notANumber leftText)
+    | Option.some left => (withRight operation left rightText))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: answer,
+  parameters: [values : (List FieldValue)],
+  result: Reply,
+  body: (match (match (lookup "operation" values) | Option.none => (ctor Option.none [Operation]) | Option.some name => (operationOf name))
+    | Option.none => (say "Choose an operation." (ctor Tone.Error))
+    | Option.some operation => (match (lookup "left" values)
+      | Option.none => (say "Enter both numbers." (ctor Tone.Error))
+      | Option.some leftText => (match (lookup "right" values)
+        | Option.none => (say "Enter both numbers." (ctor Tone.Error))
+        | Option.some rightText => (withOperands operation leftText rightText)))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true
+}
+
+definition{
+  name: respond,
+  parameters: [values : (List FieldValue)],
+  result: (List OutputValue),
+  body: (let reply : Reply := (answer values); (cons (record OutputValue {id := "result", text := (project reply text), tone := (project reply tone)}) (nil OutputValue))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  executable: true,
+  production: {effects: [allocation, overflow, recursion], targets: [rust-std]}
+}
+
+definition{
+  name: application,
+  parameters: [],
+  result: Application,
+  body: (record Application {name := "Calculator", contract := "prism-screen/1", screen := (calculatorScreen), acceptanceVectors := (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "20"}) (cons (record FieldValue {id := "operation", value := "add"}) (cons (record FieldValue {id := "right", value := "22"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "42", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "-7"}) (cons (record FieldValue {id := "operation", value := "subtract"}) (cons (record FieldValue {id := "right", value := "5"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "-12", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "-6"}) (cons (record FieldValue {id := "operation", value := "multiply"}) (cons (record FieldValue {id := "right", value := "7"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "-42", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "-7"}) (cons (record FieldValue {id := "operation", value := "divide"}) (cons (record FieldValue {id := "right", value := "3"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "-2", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "7"}) (cons (record FieldValue {id := "operation", value := "divide"}) (cons (record FieldValue {id := "right", value := "-3"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "-2", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "9223372036854775807"}) (cons (record FieldValue {id := "operation", value := "add"}) (cons (record FieldValue {id := "right", value := "0"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "9223372036854775807", tone := (ctor Tone.Ok)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "7"}) (cons (record FieldValue {id := "operation", value := "divide"}) (cons (record FieldValue {id := "right", value := "0"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "Division by zero is undefined.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "9223372036854775807"}) (cons (record FieldValue {id := "operation", value := "add"}) (cons (record FieldValue {id := "right", value := "1"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "Overflow: the result does not fit in 64 bits.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "-9223372036854775808"}) (cons (record FieldValue {id := "operation", value := "add"}) (cons (record FieldValue {id := "right", value := "-1"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "Overflow: the result does not fit in 64 bits.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "-9223372036854775808"}) (cons (record FieldValue {id := "operation", value := "subtract"}) (cons (record FieldValue {id := "right", value := "1"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "Overflow: the result does not fit in 64 bits.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "9223372036854775807"}) (cons (record FieldValue {id := "operation", value := "multiply"}) (cons (record FieldValue {id := "right", value := "2"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "Overflow: the result does not fit in 64 bits.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "-9223372036854775808"}) (cons (record FieldValue {id := "operation", value := "divide"}) (cons (record FieldValue {id := "right", value := "-1"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "Overflow: the result does not fit in 64 bits.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "seven"}) (cons (record FieldValue {id := "operation", value := "add"}) (cons (record FieldValue {id := "right", value := "1"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "“seven” is not a 64-bit whole number.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "1"}) (cons (record FieldValue {id := "operation", value := "add"}) (cons (record FieldValue {id := "right", value := "+2"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "“+2” is not a 64-bit whole number.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "9223372036854775808"}) (cons (record FieldValue {id := "operation", value := "add"}) (cons (record FieldValue {id := "right", value := "1"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "“9223372036854775808” is not a 64-bit whole number.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := ""}) (cons (record FieldValue {id := "operation", value := "add"}) (cons (record FieldValue {id := "right", value := "2"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "Enter both numbers.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "1"}) (cons (record FieldValue {id := "operation", value := "modulo"}) (cons (record FieldValue {id := "right", value := "2"}) (nil FieldValue)))), expected := (cons (record OutputValue {id := "result", text := "Choose an operation.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "operation", value := "add"}) (cons (record FieldValue {id := "right", value := "2"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Enter both numbers.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (cons (record AcceptanceVector {given := (cons (record FieldValue {id := "left", value := "1"}) (cons (record FieldValue {id := "right", value := "2"}) (nil FieldValue))), expected := (cons (record OutputValue {id := "result", text := "Choose an operation.", tone := (ctor Tone.Error)}) (nil OutputValue))}) (nil AcceptanceVector))))))))))))))))))))}),
+  executable: true,
+  production: {effects: [allocation], targets: [rust-std]}
+}
+
+definition{
+  name: member,
+  parameters: [key : String, keys : (List String)],
+  result: Bool,
+  body: (match keys
+    | List.nil => false
+    | List.cons head rest => (if (prim equal key head : Bool) then true else (member key rest))),
+  executable: true,
+  recursive_argument: keys
+}
+
+definition{
+  name: distinct,
+  parameters: [keys : (List String)],
+  result: Bool,
+  body: (match keys
+    | List.nil => true
+    | List.cons head rest => (if (member head rest) then false else (distinct rest))),
+  executable: true,
+  recursive_argument: keys
+}
+
+definition{
+  name: allMembers,
+  parameters: [keys : (List String), within : (List String)],
+  result: Bool,
+  body: (match keys
+    | List.nil => true
+    | List.cons head rest => ((member head within) && (allMembers rest within))),
+  executable: true,
+  recursive_argument: keys
+}
+
+definition{
+  name: offers,
+  parameters: [key : String, options : (List ChoiceOption)],
+  result: Bool,
+  body: (match options
+    | List.nil => false
+    | List.cons option rest => (if (prim equal (project option id) key : Bool) then true else (offers key rest))),
+  executable: true,
+  recursive_argument: options
+}
+
+definition{
+  name: noted,
+  parameters: [facts : Facts, key : String, isOutput : Bool, valid : Bool],
+  result: Facts,
+  body: (record Facts {ids := (cons key (project facts ids)), outputs := (if isOutput then (cons key (project facts outputs)) else (project facts outputs)), choicesValid := ((project facts choicesValid) && valid)}),
+  executable: true
+}
+
+definition{
+  name: collect,
+  parameters: [fuel : Nat, nodes : (List Node), facts : Facts],
+  result: (Option Facts),
+  body: (match fuel
+    | Nat.zero => (match nodes | List.nil => (ctor Option.some [Facts] facts) | List.cons node rest => (ctor Option.none [Facts]))
+    | Nat.succ less => (match nodes
+      | List.nil => (ctor Option.some [Facts] facts)
+      | List.cons node rest => (match node
+        | Node.Heading words => (collect less rest facts)
+        | Node.Action words => (collect less rest facts)
+        | Node.Field field => (collect less rest (noted facts (project field id) false true))
+        | Node.Choice choice => (collect less rest (noted facts (project choice id) false (offers (project choice initial) (project choice options))))
+        | Node.Output key => (collect less rest (noted facts key true true))
+        | Node.Row children => (match (collect less children facts)
+          | Option.none => (ctor Option.none [Facts])
+          | Option.some inner => (collect less rest inner))
+        | Node.Stack children => (match (collect less children facts)
+          | Option.none => (ctor Option.none [Facts])
+          | Option.some inner => (collect less rest inner))))),
+  executable: true,
+  recursive_argument: fuel
+}
+
+definition{
+  name: screenFacts,
+  parameters: [screen : Screen],
+  result: (Option Facts),
+  body: (collect 64 (project screen body) (record Facts {ids := (nil String), outputs := (nil String), choicesValid := true})),
+  executable: true
+}
+
+definition{
+  name: choicesValid,
+  parameters: [screen : Screen],
+  result: Bool,
+  body: (match (screenFacts screen) | Option.none => false | Option.some found => (project found choicesValid)),
+  executable: true
+}
+
+definition{
+  name: idsUnique,
+  parameters: [screen : Screen],
+  result: Bool,
+  body: (match (screenFacts screen) | Option.none => false | Option.some found => (distinct (project found ids))),
+  executable: true
+}
+
+definition{
+  name: outputIds,
+  parameters: [outputs : (List OutputValue)],
+  result: (List String),
+  body: (match outputs
+    | List.nil => (nil String)
+    | List.cons output rest => (cons (project output id) (outputIds rest))),
+  executable: true,
+  recursive_argument: outputs
+}
+
+definition{
+  name: declares,
+  parameters: [screen : Screen, written : (List String)],
+  result: Bool,
+  body: (match (screenFacts screen) | Option.none => false | Option.some found => (allMembers written (project found outputs))),
+  executable: true
+}
+
+theorem{
+  name: every_initial_choice_is_offered,
+  parameters: [],
+  statement: ((choicesValid (calculatorScreen)) = true),
+  proof: decide{},
+  axioms: []
+}
+
+theorem{
+  name: ids_are_unique,
+  parameters: [],
+  statement: ((idsUnique (calculatorScreen)) = true),
+  proof: decide{},
+  axioms: []
+}
+
+theorem{
+  name: respond_writes_declared_outputs,
+  parameters: [values : (List FieldValue)],
+  statement: ((declares (calculatorScreen) (outputIds (respond values))) = true),
+  proof: reflexivity{},
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}
