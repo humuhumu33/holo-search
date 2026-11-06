@@ -1,68 +1,43 @@
-// Holo Search's wiring of the Prism frame. bootstrap/holo-page.mjs appends
-// this after the frame's own top bar code, taken from the pinned
-// site/app.mjs (chip, trust, share, omnibox, spectrum, theme), so $, data,
-// here and those functions are in scope here.
+// Holo Search's wiring of the canonical frame. bootstrap/holo-page.mjs
+// appends this after the template's frame loader (frame, verdict, chip, and
+// the $, describe and data they use), cut unchanged from its site/app.mjs.
+//
+// The top bar is the template's <prism-frame>, loaded live. Holo Search only
+// tells it what is showing, through the element's attributes (the
+// prism/frame/1 contract): the open app's name, holo:// address, shareable
+// link and purpose, and the verdict its own verification gate reached.
 //
 // The verified runtime (the module before this one, unchanged) decides
 // everything: what an address means, which app it names, whether that app
-// may open. This file only shows its answers in the frame. It reads the
-// runtime's state from the elements it writes (#status, #app-page,
-// #app-status, the document title and the URL it pushes), and hands it what
-// the omnibox chose through its own search form, so the model decides.
+// may open. This file reads its answers from the elements it writes
+// (#status, #app-page, #app-status, the document title and the URL it
+// pushes) and shows them in the frame and the Identity card. The frame's
+// address bar sends what is typed to this page's ?r=, where the runtime
+// resolves and verifies it.
 
-// The runtime bound its share handler to the hidden #share (first in the
-// document); from here on the id, and the share button, are the frame's.
-document.querySelector("#engine #share")?.removeAttribute("id");
+const holo = data.holo;
+const element = $("frame");
 
-// Set by the patched omnibox() and share(): point the bar at an address,
-// and re-read data.share.
-let point = () => {};
-let reshare = () => {};
+// Holo Search is its own home: the frame's home icon and address bar resolve
+// through this page, so a copy served elsewhere (or from disk) stays itself.
+element.setAttribute("home", new URL(".", location.href).href);
 
-const live = new URL(data.share.url);
-// Registry suggestions come from this page's own copy (the bundle serves it,
-// from disk or offline too); the runtime still verifies whatever is chosen.
-data.search = new URL(".", location.href).href;
-
-// The app's name as the bar's holo:// address, as bootstrap/page.mjs makes it.
+// The app's name as its holo:// address, as bootstrap/page.mjs makes it.
 const slug = (name) =>
   name.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "app";
 
-// The omnibox hands its choice to the runtime's search form: the model
-// classifies it, resolves it and runs the gate before anything opens.
-function open(target) {
-  state.refused = null;
-  paint();
-  $("q").value = target;
-  $("bar").requestSubmit();
-}
-
-// The share panel follows what is open: its link opens that app, verified,
-// in any browser; with nothing open it shares Holo Search.
-function retarget(url, title, text) {
-  data.share = { url, title, text };
-  reshare();
-  const query = (params) => new URLSearchParams(params).toString();
-  const link = new URL(url);
-  const [x, linkedin, facebook, email] = document.querySelectorAll("#share-panel a.share-target");
-  $("share-title").textContent = `Share ${title}`;
-  document.querySelector("#share-panel .share-url").textContent = link.search
-    ? link.host + link.pathname + link.search
-    : (link.host + link.pathname).replace(/\/$/, "");
-  x.href = `https://x.com/intent/post?${query({ text, url })}`;
-  linkedin.href = `https://www.linkedin.com/sharing/share-offsite/?${query({ url })}`;
-  facebook.href = `https://www.facebook.com/sharer/sharer.php?${query({ u: url })}`;
-  email.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${text}\n\n${url}`)}`;
-}
+// An attribute set, or removed when there is no value. The frame redraws
+// only when a value changes.
+const set = (name, value) => (value ? element.setAttribute(name, value) : element.removeAttribute(name));
 
 // What the runtime is doing, read from what it writes.
 const state = { gate: "wait", opening: null, refused: null };
 
 function readStatus() {
   const text = $("status").textContent;
-  let found;
   // The runtime names a model by its sha256 prefix alone and a holo with blake3:.
   const named = (address) => (address.includes(":") ? address : `sha256:${address}`);
+  let found;
   if ((found = text.match(/^Opening (.+) · (\S+)$/))) {
     state.opening = { name: found[1], address: named(found[2]) };
     state.refused = null;
@@ -87,54 +62,68 @@ function paint() {
   const phase = state.opening ? "opening" : appOpen ? "open" : state.refused ? "refused" : "home";
   const address = new URLSearchParams(location.search).get("r") ?? "";
   const full = address.startsWith("blake3:") ? address : address && `sha256:${address}`;
-  const gate = `sha256:${data.holo.image}`;
-  let title = "Holo Search";
-  let host = "holo-search";
-  let purpose = data.holo.purpose;
-  let shown = `sha256:${data.holo.model}`;
-  here.fingerprint = "";
+  let title = holo.name;
+  let host = slug(holo.name);
+  let lede = holo.purpose;
+  let shown = `sha256:${holo.model}`;
+  // The frame's attributes: what it shows, and what its share panel shares.
+  let frame = { live: holo.live, repo: holo.repo, purpose: holo.purpose, card: new URL("og.png", holo.live).href };
 
   if (phase === "home") {
-    const words = { good: "Holo Search's verified gate is ready in this browser", wait: "Verifying Holo Search in this browser", bad: "Holo Search could not start its verified gate" }[state.gate];
-    trust(words, state.gate, state.gate === "good" ? gate : "");
+    const words = {
+      good: "Holo Search's verified gate is ready in this browser",
+      wait: "Verifying Holo Search in this browser",
+      bad: "Holo Search could not start its verified gate",
+    }[state.gate];
+    set("fingerprint", "");
+    verdict(state.gate, state.gate === "good" ? `${words}, image sha256:${holo.image}` : words);
     chip($("verified"), { good: "verified", wait: "verifying", bad: "failed to start" }[state.gate], state.gate);
   } else if (phase === "opening") {
     ({ title, host } = titled(state.opening));
-    purpose = "Fetching it and checking it against its address in this browser. It opens only if every check passes.";
+    lede = "Fetching it and checking it against its address in this browser. It opens only if every check passes.";
     shown = `${state.opening.address}…`;
-    trust(`Verifying ${title} in this browser`, "wait");
+    frame = { ...frame, repo: "" };
+    set("fingerprint", "");
+    verdict("wait", `Verifying ${title} in this browser`);
     chip($("verified"), "verifying", "wait");
   } else if (phase === "open") {
     title = document.title.replace(/ · Holo Search$/, "");
     host = slug(title);
-    purpose = "Verified in this browser before it opened: its bytes match its address and every acceptance vector it declares passed.";
+    lede = "Verified in this browser before it opened: its bytes match its address and every acceptance vector it declares passed.";
     shown = full;
-    if (address.startsWith("blake3:")) here.fingerprint = address.slice(7);
-    trust("Verified in this browser", "good", full);
+    // The link that opens this app, verified, in any browser. Its source
+    // repository is not known here, so the frame hides GitHub.
+    frame = { live: `${holo.live}?r=${address}`, repo: "", purpose: "Verified in your browser by Holo Search.", card: frame.card };
+    // The frame matches a holo's fingerprint against the registry's blake3;
+    // a model's sha256 goes in the words instead.
+    set("fingerprint", address.startsWith("blake3:") ? address.slice(7) : "");
+    verdict("good", address.startsWith("blake3:") ? "Verified in this browser" : `Verified in this browser, ${full}`);
     chip($("verified"), "verified", "good");
   } else {
     ({ title, host } = titled(state.refused));
-    purpose = "Refused in this browser, so it did not open. The proof shows which check failed.";
+    lede = "Refused in this browser, so it did not open. The proof shows which check failed.";
     shown = `${state.refused.address}…`;
-    trust(`Refused: ${title} is NOT verified`, "bad", shown);
+    frame = { ...frame, repo: "" };
+    set("fingerprint", "");
+    verdict("bad", `Refused: ${title} is NOT verified, ${shown}`);
     chip($("verified"), "NOT verified", "bad");
   }
 
-  point(title, host);
+  set("name", title);
+  set("address", host);
+  for (const [name, value] of Object.entries(frame)) set(name, value);
+  // The stand-in shown until the frame arrives, or if it cannot.
+  const fallback = element.querySelector(".frame-fallback");
+  if (fallback) fallback.lastChild.textContent = host;
+
   $("name-text").textContent = title;
-  $("purpose").textContent = purpose;
+  $("purpose").textContent = lede;
   $("address-label").textContent = phase === "home" ? "Model" : "Address";
   $("address-full").textContent = shown;
   $("status").hidden = phase === "open";
   $("model-link").hidden = phase === "opening" || phase === "refused";
-  if (phase === "home") $("model-link").href = data.holo.modelUrl;
+  if (phase === "home") $("model-link").href = holo.modelUrl;
   $("proof-open-2").hidden = phase === "home";
-
-  if (phase === "open") {
-    retarget(`${live.href}?r=${address}`, title, `${title}, verified in your browser by Holo Search`);
-  } else if (data.share.url !== live.href) {
-    retarget(live.href, "Holo Search", data.holo.shareText);
-  }
 }
 
 // Only what the runtime writes is watched; paint() never writes it, so
@@ -158,16 +147,5 @@ function watch() {
   paint();
 }
 
-// Home is the runtime's own home: a plain click returns to search without
-// reloading the page; any other click follows the link.
-$("home").addEventListener("click", (event) => {
-  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  event.preventDefault();
-  $("home-link").click();
-});
-
-theme();
-share();
-omnibox();
-spectrum();
 watch();
+frame();

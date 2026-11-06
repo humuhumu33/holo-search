@@ -26,8 +26,7 @@
   <body>
     <!-- The verified runtime below binds these by id when it starts. The
          frame's top bar does their work; they stay so the runtime runs
-         unchanged. They come first: the runtime's share handler binds to the
-         #share here, not to the frame's, and the frame takes the id after. -->
+         unchanged. -->
     <div id="engine" hidden>
       <form id="bar" role="search"><input id="q" type="text" tabindex="-1" aria-hidden="true" /><button id="go" type="submit" tabindex="-1"></button></form>
       <ul id="suggest" hidden></ul>
@@ -37,7 +36,7 @@
       <span id="try-sep" hidden></span>
       <span id="dot" class="busy"></span>
     </div>
-{{TOPBAR}}
+{{FRAME}}
     <main>
       <header class="intro">
         <h1 id="name"><span id="name-text">{{NAME}}</span></h1>

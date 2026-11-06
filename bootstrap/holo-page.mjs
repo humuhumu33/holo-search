@@ -7,15 +7,16 @@
 // The page has three parts, and this script owns only how they are put
 // together:
 //
-//   The frame. The top bar, the share panel, the brand and the frame's own
-//   top bar code come from the files frame.lock and brand.lock pin, at the
-//   template commit frame.lock names. frame-sync and brand-sync must pass
-//   before anything is written. The bar's markup is cut from
-//   site/page.template.html and filled as bootstrap/page.mjs fills it; the
-//   stylesheets are inlined as page.mjs inlines them; the functions chip,
-//   trust, share, omnibox, spectrum and theme are cut from site/app.mjs.
-//   PATCHES below lists every change Holo Search makes to them, and each must
-//   apply exactly once.
+//   The frame. The top bar is the canonical <prism-frame>, which the page
+//   loads live from the template's Pages site and checks against its
+//   SHA-256 before running it; nothing of the bar is copied here. What is
+//   copied comes from the files frame.lock and brand.lock pin, at the
+//   template commit frame.lock names, and frame-sync and brand-sync must pass
+//   before anything is written: the <prism-frame> element and its stand-in,
+//   cut from site/page.template.html and filled as bootstrap/page.mjs fills
+//   them; the page's body styles and the brand, inlined as page.mjs inlines
+//   them; and the loader (frame, verdict, chip), cut unchanged from
+//   site/app.mjs.
 //
 //   The runtime. Holo Search's verified runtime (the gate, the model, the
 //   WebAssembly runtime, the registry copy and the workers) is carried over
@@ -108,36 +109,39 @@ const image = index.find((entry) => entry.module === "HoloSearch" && entry.kind 
 if (!image) fail("the runtime module pins no HoloSearch image that registry/index.json lists");
 if (!index.some((entry) => entry.sha256 === model)) fail(`registry/index.json does not list the model src/HoloSearch.lex.tex (${model})`);
 
-// The frame's fills, made as bootstrap/page.mjs makes them.
+// The values the template's page fills, made as bootstrap/page.mjs makes them.
 const escape = (text) =>
   String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const live = new URL(meta.live);
 const holoSearch = new URL("https://humuhumu33.github.io/holo-search/");
+// The canonical frame: the template's Pages site publishes it on every push
+// to main. HOLO_FRAME_HOST points a local build at a frame published with
+// frame/publish.mjs, for a test; --check rejects a page built that way.
+const frameHost = new URL(process.env.HOLO_FRAME_HOST ?? meta.frame ?? "https://uor-foundation.github.io/template/frame/");
 const shareText = `${meta.name}: ${meta.purpose.split(/(?<=\.)\s/)[0]}`;
-const query = (params) => new URLSearchParams(params).toString();
 const frameFill = {
-  HOLO_SEARCH: escape(holoSearch.href),
-  HOLO_NAME: escape(meta.name.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "app"),
   NAME: escape(meta.name),
+  HOLO_NAME: escape(meta.name.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "app"),
+  LIVE: escape(live.href),
   REPO: escape(meta.repository),
-  SHARE_HOST: escape((live.host + live.pathname).replace(/\/$/, "")),
-  SHARE_X: escape(`https://x.com/intent/post?${query({ text: shareText, url: live.href })}`),
-  SHARE_LINKEDIN: escape(`https://www.linkedin.com/sharing/share-offsite/?${query({ url: live.href })}`),
-  SHARE_FACEBOOK: escape(`https://www.facebook.com/sharer/sharer.php?${query({ u: live.href })}`),
-  SHARE_EMAIL: escape(`mailto:?subject=${encodeURIComponent(meta.name)}&body=${encodeURIComponent(`${shareText}\n\n${live.href}`)}`),
+  HOLO_SEARCH: escape(holoSearch.href),
+  PURPOSE: escape(meta.purpose),
+  OG_IMAGE: escape(new URL("og.png", live).href),
 };
 const fill = (text, values) => {
   for (const [key, value] of Object.entries(values)) text = text.split(`{{${key}}}`).join(value);
   return text;
 };
 
-// The top bar and its share panel, cut from the frame's page.
+// The header: the template's own <prism-frame> element and its stand-in,
+// cut from its page and filled. The frame itself is not here: the page
+// loads it live (the frame() loader below).
 const page = await read("site/page.template.html");
-const barStart = page.indexOf('    <header class="topbar">');
-const barEnd = page.indexOf("    </header>\n", barStart) + "    </header>\n".length;
-if (barStart < 0 || barEnd < barStart) fail("site/page.template.html has no top bar");
-const topbar = fill(page.slice(barStart, barEnd), frameFill).trimEnd();
-if (/\{\{[A-Z_]+\}\}/.test(topbar)) fail(`the top bar has an unfilled value: ${topbar.match(/\{\{[A-Z_]+\}\}/)[0]}`);
+const frameStart = page.indexOf("    <prism-frame ");
+const frameEnd = page.indexOf("    </prism-frame>\n", frameStart) + "    </prism-frame>\n".length;
+if (frameStart < 0 || frameEnd < frameStart) fail("site/page.template.html has no <prism-frame>");
+const header = fill(page.slice(frameStart, frameEnd), frameFill).trimEnd();
+if (/\{\{[A-Z_]+\}\}/.test(header)) fail(`the frame element has an unfilled value: ${header.match(/\{\{[A-Z_]+\}\}/)[0]}`);
 
 // The styles, inlined as page.mjs inlines them; the fonts go in as data, so
 // the page stays one file.
@@ -150,11 +154,11 @@ for (const [, file] of fonts.matchAll(/url\("\.\.\/fonts\/([^"]+\.woff2)"\)/g)) 
 const css = minify([await read("site/brand/hologram-warm.css"), fonts, await read("site/prism-page.css"), await read("site/holo-search.css")].join("\n"));
 const theme = (await read("site/theme.js")).trim();
 
-// The frame's top bar code, cut from site/app.mjs: each function from its
-// leading comment to its closing brace, and the lines they share.
+// The template's frame loader and its helpers, cut unchanged from
+// site/app.mjs: each function from its leading comment to its closing brace.
 const app = await read("site/app.mjs");
 function cut(name) {
-  const start = app.search(new RegExp(`^function ${name}\\(`, "m"));
+  const start = app.search(new RegExp(`^(async )?function ${name}\\(`, "m"));
   if (start < 0) fail(`site/app.mjs has no function ${name}`);
   const end = app.indexOf("\n}\n", start) + 3;
   const lines = app.slice(0, start).split("\n");
@@ -168,65 +172,30 @@ function line(prefix) {
   if (found.length !== 1) fail(`site/app.mjs has ${found.length} lines starting ${prefix}`);
   return `${found[0]}\n`;
 }
-
-// Every change Holo Search makes to the frame's code. Each applies exactly
-// once, or nothing is written.
-const PATCHES = [
-  {
-    in: "share",
-    why: "the link follows the open app, so the panel re-reads data.share",
-    find: "  const { url, title, text } = data.share;\n",
-    replace: "  let { url, title, text } = data.share;\n  reshare = () => ({ url, title, text } = data.share);\n",
-  },
-  {
-    in: "omnibox",
-    why: "the address follows the open app",
-    find: '  const shown = input.value;\n  const slug = shown.replace(/^holo:\\/\\//, "");\n  const name = document.title;\n',
-    replace:
-      '  let shown = input.value;\n  let slug = shown.replace(/^holo:\\/\\//, "");\n  let name = document.title;\n' +
-      "  point = (title, host) => {\n    name = title;\n    slug = host;\n    shown = `holo://${host}`;\n" +
-      '    form.querySelector(".host").textContent = host;\n    if (!bar.classList.contains("editing")) input.value = shown;\n  };\n',
-  },
-  {
-    in: "omnibox",
-    why: "Holo Search opens the choice itself, through its verified runtime, instead of navigating to Holo Search",
-    find: "    list.hidden = true;\n    location.assign(`${search}?r=${encodeURIComponent(row.target)}`);\n",
-    replace: "    input.blur();\n    close();\n    open(row.target);\n",
-  },
-];
-const patched = {};
-for (const name of ["chip", "trust", "share", "omnibox", "spectrum", "theme"]) patched[name] = cut(name);
-for (const patch of PATCHES) {
-  const parts = patched[patch.in].split(patch.find);
-  if (parts.length !== 2) fail(`patch to ${patch.in} (${patch.why}) matches ${parts.length - 1} times in site/app.mjs`);
-  patched[patch.in] = parts.join(patch.replace);
-}
 const frameScript = [
-  `// The Prism frame's top bar, cut from UOR-Foundation/template@${lock.source.commit} site/app.mjs`,
-  `// (sha256 ${lock.files.find((file) => file.path === "site/app.mjs").sha256}) by bootstrap/holo-page.mjs,`,
-  "// with the changes that script's PATCHES list. Then Holo Search's wiring.",
+  `// From UOR-Foundation/template@${lock.source.commit} site/app.mjs`,
+  `// (sha256 ${lock.files.find((file) => file.path === "site/app.mjs").sha256}), cut unchanged by`,
+  "// bootstrap/holo-page.mjs: the frame loader and its helpers. Then Holo Search's wiring.",
   line("const $ = "),
+  line("const describe = "),
   line("const data = "),
-  patched.chip,
-  patched.trust,
-  patched.share,
-  line("const here = "),
-  patched.omnibox,
-  patched.spectrum,
-  patched.theme,
+  cut("chip"),
+  cut("frame"),
+  cut("verdict"),
   await read("site/holo-frame.mjs"),
 ].join("\n");
 if (frameScript.includes("</script")) fail("the frame script contains </script");
 
 const appData = {
-  share: { url: live.href, title: meta.name, text: shareText },
-  search: holoSearch.href,
+  frame: frameHost.href,
   holo: {
     model,
     image: image.sha256,
     modelUrl: `${meta.repository}/blob/main/src/HoloSearch.lex.tex`,
+    name: meta.name,
     purpose: meta.purpose,
-    shareText,
+    live: live.href,
+    repo: meta.repository,
   },
 };
 
@@ -246,8 +215,8 @@ let html = fill(await read("site/holo-search.template.html"), {
   REPORT: escape(meta.report),
   INLINE_CSS: css,
   INLINE_THEME: theme,
-  APP_DATA: JSON.stringify(appData).replace(/</g, "\\u003c"),
-  TOPBAR: topbar,
+  APP_DATA: JSON.stringify(appData).replace(/</g, "\u003c"),
+  FRAME: header,
   RUNTIME: runtimeHtml,
   FRAME_SCRIPT: `    <script type="module" id="holo-frame">\n${frameScript}</script>`,
 });

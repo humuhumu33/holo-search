@@ -1,10 +1,10 @@
-/* Holo Search's page body, inside the Prism frame.
- * The top bar, the share panel, the type, the colours and the controls are
- * the frame's (site/prism-page.css and the brand, pinned by frame.lock and
- * brand.lock, loaded before this file). This file styles only what Holo
- * Search adds below the bar: the search card, the app it opens, the proof
- * sheet, and the apps' own screens. It declares no colour: every one is a
- * brand variable. */
+/* Holo Search's page body, under the canonical <prism-frame>.
+ * The top bar is the frame's own, loaded live and styled in its shadow root.
+ * The page's type, colours, cards and controls are the template's
+ * (site/prism-page.css and the brand, pinned by frame.lock and brand.lock,
+ * loaded before this file). This file styles only what Holo Search adds: the
+ * search card, the app it opens, the proof sheet, and the apps' own screens.
+ * It declares no colour: every one is a brand variable. */
 
 /* The runtime's own controls (its old search bar, its share button) stay in
  * the document so the verified runtime finds every element it binds, but the

@@ -48,29 +48,39 @@ site, from disk, offline, or as a message attachment.
   Rebuild step can rebuild an image from its source and compare.
 - [`index.html`](index.html): the page, its runtime and these models in one
   file.
-- The frame: Holo Search, and every app it opens, sits in the same top bar as
-  every Prism app (home, the `holo://` address bar with its shield, share,
-  GitHub, theme), taken from
-  [UOR-Foundation/template](https://github.com/UOR-Foundation/template) at
-  the commit [`frame.lock`](frame.lock) pins; [`brand.lock`](brand.lock) pins
-  the Hologram brand. The address bar shows `holo://holo-search`, or the open
-  app's name with its shield in that app's verified state.
-  [`bootstrap/holo-page.mjs`](bootstrap/holo-page.mjs) builds `index.html`
-  from the pinned frame and the runtime already in it, which it carries over
-  byte for byte; its `PATCHES` list every change made to the frame's code.
+- The frame: the top bar is the canonical `<prism-frame>` every Prism app
+  shows (home, the `holo://` address bar with its shield, share, GitHub,
+  theme). The page loads it live from
+  [UOR-Foundation/template](https://github.com/UOR-Foundation/template)'s
+  Pages site, `frame/current.json`, and checks the module against that
+  pointer's SHA-256 before running it, so a frame change reaches Holo Search
+  on its next load. Holo Search sets the element's attributes: its own name
+  and `holo://holo-search` with no app open; the open app's name, address and
+  shareable `?r=` link, with the shield in the verdict its own verification
+  gate reached. If the frame cannot load, a plain `holo://` address stands in
+  and the page still works.
+- [`bootstrap/holo-page.mjs`](bootstrap/holo-page.mjs) builds `index.html`
+  from the runtime already in it, which it carries over byte for byte, and
+  from what [`frame.lock`](frame.lock) and [`brand.lock`](brand.lock) pin
+  from the template: the `<prism-frame>` element, the frame loader, the page's
+  body styles and the Hologram brand.
 
 ## Rebuild the page
 
 ```bash
-node bootstrap/frame-sync.mjs --check   # the frame files match frame.lock
+node bootstrap/frame-sync.mjs --check   # the template files match frame.lock
 node bootstrap/brand-sync.mjs --check   # the brand files match brand.lock
 node bootstrap/holo-page.mjs            # rewrite index.html and og.png
 node bootstrap/holo-page.mjs --check    # fail unless they are current
 ```
 
 `python -I bootstrap/og.py` redraws `site/og.png`, the social card, from
-`site/app.json`; `node bootstrap/frame-sync.mjs --pin <commit>` takes a newer
-frame from the template.
+`site/app.json`; `node bootstrap/frame-sync.mjs --pin <commit>` takes newer
+template files. To test against a frame not yet published, run
+`node frame/publish.mjs <dir>` in a template checkout, serve `<dir>` with
+`Access-Control-Allow-Origin: *`, and build with
+`HOLO_FRAME_HOST=<that URL> node bootstrap/holo-page.mjs`; `--check` then
+fails until the page is rebuilt without it.
 
 ## Status
 
