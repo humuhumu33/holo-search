@@ -48,6 +48,29 @@ site, from disk, offline, or as a message attachment.
   Rebuild step can rebuild an image from its source and compare.
 - [`index.html`](index.html): the page, its runtime and these models in one
   file.
+- The frame: Holo Search, and every app it opens, sits in the same top bar as
+  every Prism app (home, the `holo://` address bar with its shield, share,
+  GitHub, theme), taken from
+  [UOR-Foundation/template](https://github.com/UOR-Foundation/template) at
+  the commit [`frame.lock`](frame.lock) pins; [`brand.lock`](brand.lock) pins
+  the Hologram brand. The address bar shows `holo://holo-search`, or the open
+  app's name with its shield in that app's verified state.
+  [`bootstrap/holo-page.mjs`](bootstrap/holo-page.mjs) builds `index.html`
+  from the pinned frame and the runtime already in it, which it carries over
+  byte for byte; its `PATCHES` list every change made to the frame's code.
+
+## Rebuild the page
+
+```bash
+node bootstrap/frame-sync.mjs --check   # the frame files match frame.lock
+node bootstrap/brand-sync.mjs --check   # the brand files match brand.lock
+node bootstrap/holo-page.mjs            # rewrite index.html and og.png
+node bootstrap/holo-page.mjs --check    # fail unless they are current
+```
+
+`python -I bootstrap/og.py` redraws `site/og.png`, the social card, from
+`site/app.json`; `node bootstrap/frame-sync.mjs --pin <commit>` takes a newer
+frame from the template.
 
 ## Status
 

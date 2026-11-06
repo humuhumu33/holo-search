@@ -1,0 +1,734 @@
+/* The standard Prism app page, bound to the Hologram brand kit.
+ * Every colour, radius, border, ring, duration and easing is a variable from
+ * brand/hologram-warm.css (the top bar's spectrum line is the one named
+ * exception); the fonts and their metric-matched fallbacks come
+ * from brand/fonts.css, both pinned by brand.lock. The type scale is the
+ * brand's: 14, 16, 18, 20, 24, 30, 36 px, nothing under 14. No shadows on the
+ * dark ground.
+ *
+ * Layout follows the Material 3 window size classes: compact under 600 px
+ * (one column, 16 px margins), medium 600 to 840 (one column, 24 px margins),
+ * expanded and up from 840 (two panes, 24 px apart). Touch targets are 48 px
+ * on coarse pointers and 36 px controls on fine ones. */
+
+:root {
+  --text-14: 0.875rem;
+  --text-16: 1rem;
+  --text-18: 1.125rem;
+  --text-20: 1.25rem;
+  --text-24: 1.5rem;
+  --text-30: 1.875rem;
+  --text-36: 2.25rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --margin: 1rem;
+  --measure: 45rem;
+  --measure-wide: 80rem;
+  --column: var(--measure);
+  --control: 2.25rem;
+  --bar-control: var(--control);
+  --touch: 3rem;
+  --radius-control: calc(var(--radius) - 2px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+@media (min-width: 600px) {
+  :root { --margin: 1.5rem; }
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--background); }
+
+body {
+  margin: 0;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans);
+  font-size: var(--text-16);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* The column: the top bar's contents and main share one width and one margin. */
+main, .topbar-inner {
+  width: min(100% - 2 * var(--margin) - var(--safe-left) - var(--safe-right), var(--column));
+  margin: 0 auto;
+}
+
+/* The top bar holds the safe area, so main starts below it. */
+main { padding: var(--space-6) 0 calc(var(--space-12) + var(--safe-bottom)); }
+
+@media (min-width: 600px) {
+  main { padding-top: var(--space-8); }
+}
+
+/* Expanded width and up: two panes, identity and proof beside try and examples. */
+@media (min-width: 840px) {
+  :root { --column: var(--measure-wide); }
+  .panes {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: start;
+  }
+}
+
+/* Compact height, a phone in landscape: a shorter header, nothing sticky. */
+@media (max-height: 480px) {
+  main { padding-top: var(--space-4); }
+  .intro { margin-bottom: var(--space-4); }
+  .lede { display: none; }
+}
+
+::selection { background: var(--brand); color: var(--brand-foreground); }
+
+:focus-visible {
+  outline: var(--ring-width) solid var(--ring);
+  outline-offset: var(--ring-offset);
+}
+
+/* Top bar: the same on every Prism app. Home, the mark and the app's name
+ * with a shield for the verdict the browser reached on the holo; then
+ * sharing, the source on GitHub and the theme. Sticky, so the verdict stays in
+ * view; the shield links to the identity card that backs it. Every state of
+ * the shield is the same square, so nothing moves when the holo loads. */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: var(--safe-top);
+  background: var(--background);
+  border-bottom: var(--border-width) solid var(--border);
+}
+
+/* The spectrum: once the page scrolls under the bar, a 2 px line in the full
+ * colour spectrum lights its lower edge, as on uor.foundation, and drifts
+ * across it every 18 seconds. Its colours are the one exception to "this
+ * stylesheet declares no colour": they are the UOR Foundation's header
+ * spectrum, which the brand kit does not carry, kept here as named values.
+ * It only drifts while it shows, and never under reduced motion. */
+:root {
+  --spectrum-red: #fb5661;
+  --spectrum-orange: #fa792e;
+  --spectrum-amber: #f9cf24;
+  --spectrum-yellow: #f6e41e;
+  --spectrum-green: #25d05e;
+  --spectrum-cyan: #20d0f3;
+  --spectrum-blue: #4f81f8;
+  --spectrum-violet: #ae6ff6;
+  --spectrum-pink: #f368c5;
+  --spectrum-glow: 0 0 18px #ffffff29, 0 2px 14px #ffffff14;
+}
+.topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-1 * var(--border-width));
+  height: 2px;
+  background-image: linear-gradient(100deg,
+    var(--spectrum-red) 0%, var(--spectrum-orange) 7%, var(--spectrum-amber) 14%, var(--spectrum-yellow) 19%,
+    var(--spectrum-green) 25%, var(--spectrum-cyan) 31%, var(--spectrum-blue) 38%, var(--spectrum-violet) 45%,
+    var(--spectrum-pink) 48%, var(--spectrum-red) 50%, var(--spectrum-orange) 57%, var(--spectrum-amber) 64%,
+    var(--spectrum-yellow) 69%, var(--spectrum-green) 75%, var(--spectrum-cyan) 81%, var(--spectrum-blue) 88%,
+    var(--spectrum-violet) 95%, var(--spectrum-pink) 98%, var(--spectrum-red) 100%);
+  background-size: 200% 100%;
+  box-shadow: var(--spectrum-glow);
+  opacity: 0;
+  transition: opacity 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.topbar.scrolled::after { opacity: 1; animation: spectrum-drift 18s linear infinite; }
+@keyframes spectrum-drift { to { background-position: 200% 0; } }
+@media (prefers-reduced-motion: reduce) { .topbar.scrolled::after { animation: none; } }
+@media (forced-colors: active) { .topbar::after { display: none; } }
+
+/* A jump to the identity card lands below the bar, not under it. */
+html { scroll-padding-top: calc(var(--safe-top) + var(--bar-control) + 2 * var(--space-2) + var(--space-4)); }
+
+/* One line; at 200 percent text it wraps rather than overflow. */
+.topbar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+/* Icons: 20 px line drawings in the text colour of whatever holds them. */
+.topbar svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ghost.icon {
+  flex: none;
+  justify-content: center;
+  width: var(--bar-control);
+  min-height: var(--bar-control);
+  padding: 0;
+}
+
+/* The address: the app's holo:// name in a pill, read the way a browser's
+ * address bar reads. The brand dot stands where the site icon goes, the
+ * scheme is dimmed and the name is bright, as a browser shows the domain,
+ * and the shield closes the pill on the right. It is also the omnibox: the
+ * input lies over the styled address, invisible until focused, so clicking
+ * anywhere on the pill edits it, and the suggestions open below. */
+.address {
+  position: relative;
+  flex: 1 1 6rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--bar-control);
+  margin: 0;
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border: var(--border-width) solid transparent;
+  border-radius: 999px;
+  background: var(--muted);
+  font-size: var(--text-14);
+  white-space: nowrap;
+  cursor: text;
+  transition: background var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+.address:hover { background: var(--accent); }
+/* Editing: the script's editing class, so the bar stays right when the window
+ * loses focus mid-edit; the focus rules are the same look without a script. */
+.address:focus-within, .editing .address { background: var(--background); border-color: var(--ring); }
+.address .dot { width: 0.625rem; height: 0.625rem; }
+.field { position: relative; flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; }
+.url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.scheme { color: var(--muted-foreground); }
+.host { color: var(--foreground); font-weight: 500; }
+.address:focus-within .url, .editing .address .url { visibility: hidden; }
+
+.address .omnibox {
+  position: absolute;
+  inset: calc(-1 * var(--border-width)) 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: var(--text-14);
+  font-weight: 500;
+  outline: none;
+}
+.address .omnibox:focus, .editing .address .omnibox { color: var(--foreground); }
+.address .omnibox::placeholder { color: var(--muted-foreground); font-weight: 400; }
+/* The selected address in the quiet inverse, not the brand: it is selected on every focus. */
+.address .omnibox::selection { background: var(--primary); color: var(--primary-foreground); }
+
+/* The suggestions: one card under the pill, the chosen row tinted. */
+.omnibox-list {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  z-index: 2;
+  max-height: min(26rem, 70vh);
+  margin: 0;
+  padding: var(--space-1);
+  overflow: auto;
+  list-style: none;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-overlay);
+  white-space: normal;
+  cursor: default;
+}
+.dark .omnibox-list { box-shadow: none; border-color: var(--border-strong); }
+.omnibox-list[hidden] { display: none; }
+.opt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.opt[aria-selected="true"] { background: var(--accent); }
+.opt-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.topbar .opt-icon svg { width: 1rem; height: 1rem; }
+.opt-self .opt-icon { color: var(--success); }
+.opt-text { flex: 1; min-width: 0; display: grid; line-height: 1.35; }
+.opt-title, .opt-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opt-title { font-size: var(--text-14); color: var(--muted-foreground); }
+.opt-title b { font-weight: 600; color: var(--foreground); }
+.opt-sub { font-family: var(--font-mono); font-size: var(--text-14); color: var(--muted-foreground); }
+.opt-note { padding: var(--space-2) var(--space-3); font-size: var(--text-14); color: var(--muted-foreground); }
+
+/* Compact width: while the address is edited it takes the whole bar, the
+ * way a phone's browser does, and the suggestions span it. */
+@media (max-width: 599px) {
+  .topbar-inner.editing > :not(.address) { display: none; }
+  .topbar-inner.editing .address .dot { display: inline-block; }
+}
+
+/* Brand marks are filled shapes, not line drawings. */
+.topbar svg.gh, .topbar svg.fill { fill: currentColor; stroke: none; }
+
+/* The shield, right of the name: a badge in its state's colour, with no
+ * chip around it. Dots while the browser checks, a tick when the holo
+ * verified, an exclamation mark when it did not or failed to load. Its label
+ * says which in words. Every state is the same size, so nothing moves. */
+.topbar .chip.trust {
+  flex: none;
+  justify-content: center;
+  width: 1.75rem;
+  min-height: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+}
+.trust svg { width: 1.25rem; height: 1.25rem; }
+.trust .body { fill: currentColor; fill-opacity: 0.16; }
+.topbar .chip.trust:hover { background: var(--accent); }
+.trust .ok, .trust .bad { display: none; }
+.chip-good .ok, .chip-bad .bad { display: inline; }
+.chip-good .wait, .chip-bad .wait { display: none; }
+
+/* Share: the icon turns to a tick for a moment once the link is copied. */
+#share .done, #share.copied .share { display: none; }
+#share.copied .done { display: inline; }
+
+/* The share panel: the card the platforms will show, the link to copy, and
+ * one tap to each platform. It opens under the share button (the script sets
+ * --share-top and --share-right), lifts in over one beat, closes on Escape or
+ * a click outside, and gives focus back to the button. Light ground: the
+ * overlay shadow; dark ground: no shadow, a stronger hairline. */
+.share-panel {
+  position: fixed;
+  inset: var(--share-top, 4rem) var(--share-right, 1rem) auto auto;
+  width: min(23rem, 100vw - 2rem);
+  max-height: calc(100vh - var(--share-top, 4rem) - 1rem);
+  margin: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-overlay);
+  transform-origin: top right;
+  transition: opacity var(--duration) var(--ease), transform var(--duration) var(--ease), overlay var(--duration) allow-discrete, display var(--duration) allow-discrete;
+}
+.share-panel:not(:popover-open) { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+@starting-style {
+  .share-panel:popover-open { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+}
+.dark .share-panel { box-shadow: none; border-color: var(--border-strong); }
+
+.share-title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-16);
+  letter-spacing: var(--tracking-display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The card, exactly as the platforms will show it. */
+.share-image {
+  aspect-ratio: 1200 / 630;
+  margin: 0 0 var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  background: var(--muted);
+}
+.share-image img { display: block; width: 100%; height: 100%; }
+.share-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The link and its copy button, one field. */
+.share-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--input);
+  border-radius: var(--radius-control);
+  background: var(--background);
+}
+.share-url { flex: 1; min-width: 0; color: var(--muted-foreground); }
+#share-copy { flex: none; display: inline-flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); }
+.topbar #share-copy svg { width: 1rem; height: 1rem; }
+#share-copy .done, #share-copy.copied .link { display: none; }
+#share-copy.copied .done { display: inline; }
+
+/* The platforms: a round glyph each, its name below. */
+.share-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.share-targets [hidden] { display: none; }
+.share-target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: auto;
+  padding: var(--space-1) 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: var(--text-14);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+.share-target:hover { background: transparent; color: var(--foreground); }
+.share-glyph {
+  display: grid;
+  place-items: center;
+  width: var(--touch);
+  height: var(--touch);
+  border: var(--border-width) solid var(--border);
+  border-radius: 50%;
+  background: var(--secondary);
+  color: var(--foreground);
+  transition: background var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+.share-target:hover .share-glyph { background: var(--accent); }
+.share-target:active .share-glyph { transform: scale(0.94); }
+
+/* Theme: the moon offers the dark ground, the sun the light one. The theme
+ * bootstrap sets the html class before first paint, so the right icon is
+ * there from the first frame. */
+.dark #theme .moon, html:not(.dark) #theme .sun { display: none; }
+
+/* The mark the spectrum watches: one pixel at the top of the page. */
+.scroll-mark { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; }
+
+/* Read by screen readers, not shown. */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Compact width: the icons pack closer, and GitHub and the address's dot
+ * step out (the footer still links the repository), so holo:// and the name
+ * keep their room at 360 px. */
+@media (max-width: 599px) {
+  .topbar-inner { column-gap: var(--space-1); }
+  #github, .address .dot { display: none; }
+}
+
+/* Compact height, a phone in landscape: the bar scrolls away with the page. */
+@media (max-height: 480px) {
+  .topbar { position: static; }
+  html { scroll-padding-top: 0; }
+}
+
+/* Header */
+
+.intro { margin-bottom: var(--space-6); }
+
+h1 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-36);
+  line-height: 1.1;
+  letter-spacing: var(--tracking-display);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 599px) { h1 { font-size: var(--text-30); } }
+
+/* The brand accent appears once per view: the mark in the top bar. */
+.dot {
+  flex: none;
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+.lede { margin: 0; max-width: 62ch; color: var(--muted-foreground); font-size: var(--text-18); }
+
+/* Cards */
+
+.card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+@media (min-width: 600px) { .card { padding: var(--space-6); } }
+
+h2 {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-20);
+  letter-spacing: var(--tracking-display);
+}
+
+.muted { color: var(--muted-foreground); }
+
+.label {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-14);
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+code, pre, .mono, .hash {
+  font-family: var(--font-mono);
+  font-size: var(--text-14);
+}
+
+code { overflow-wrap: anywhere; }
+
+pre {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--muted);
+  border-radius: var(--radius-control);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hash { overflow-wrap: anywhere; color: var(--foreground); text-decoration: none; }
+a.hash { text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 0.2em; }
+a.hash:hover { color: var(--link-hover); }
+
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin: 0; }
+
+/* Facts */
+
+.facts { display: grid; gap: var(--space-4); margin: 0; }
+.facts div { display: grid; gap: var(--space-1); }
+.facts dt { font-size: var(--text-14); font-weight: 500; color: var(--muted-foreground); }
+.facts dd { margin: 0; }
+
+/* Chips carry state. Success for a passing check, warning for a refused
+ * request (the app answered correctly) and for an update, destructive for a
+ * failure. */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  border: var(--border-width) solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--text-14);
+  font-weight: 500;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+.chip-wait { background: var(--muted); color: var(--muted-foreground); }
+.chip-good { background: var(--success-subtle); color: var(--success); border-color: var(--success-border); }
+.chip-warn { background: var(--warning-subtle); color: var(--warning); border-color: var(--warning-border); }
+.chip-bad { background: var(--destructive-subtle); color: var(--destructive); border-color: var(--destructive-border); }
+.chip[hidden] { display: none; }
+
+/* On paper, the kit's success and destructive text on their subtle grounds
+ * measures under 4.5:1 at 14 px (4.38 and about 4.0), so the chips take the
+ * card as their ground there and keep the coloured hairline. */
+html:not(.dark) .chip-good, html:not(.dark) .chip-bad { background: var(--card); }
+
+/* Space reserved for what the holo fills in after it loads, so nothing shifts. */
+.reserve-1 { display: block; min-height: 1.5rem; }
+.reserve-2 { display: block; flex: 1 0 100%; min-height: 2.625rem; }
+@media (max-width: 599px) { .reserve-1 { min-height: 3rem; } }
+
+/* Controls: 36px on a fine pointer, 48px on a coarse one, radius one step
+ * under the surface, hairline, no shadow. */
+
+button, input, .ghost {
+  font: inherit;
+  font-size: var(--text-14);
+}
+
+button {
+  min-height: var(--control);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  border: var(--border-width) solid var(--border);
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+button:hover { background: var(--accent); }
+button:active { background: var(--accent-pressed); }
+button:disabled { cursor: default; color: var(--muted-foreground); }
+
+button.primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+button.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+button.bare { min-height: auto; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; }
+
+.ghost, button.ghost {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  font-weight: 500;
+}
+.ghost:hover, button.ghost:hover { background: var(--accent); color: var(--accent-foreground); }
+
+
+input[type="text"] {
+  flex: 1 1 14rem;
+  min-width: 0;
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  border: var(--border-width) solid var(--input);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: var(--text-16);
+}
+input[type="text"]::placeholder { color: var(--muted-foreground); }
+
+.try label { display: block; margin-bottom: var(--space-2); font-size: var(--text-14); font-weight: 500; color: var(--muted-foreground); }
+.hint { margin: var(--space-2) 0 0; font-size: var(--text-14); }
+.answer { margin-top: var(--space-4); }
+.answer p { margin: 0 0 var(--space-2); }
+
+/* Proved */
+
+.claim { margin: 0 0 var(--space-4); font-size: var(--text-18); }
+.proposition { margin-bottom: var(--space-4); }
+.proposition p:last-child { margin: 0; font-size: var(--text-14); }
+
+.list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
+.list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+.list .tick { color: var(--success); font-weight: 500; }
+.list .pin { color: var(--muted-foreground); font-weight: 500; }
+.list .name { font-family: var(--font-mono); font-size: var(--text-14); overflow-wrap: anywhere; }
+.list .what { font-size: var(--text-14); color: var(--muted-foreground); overflow-wrap: anywhere; }
+
+.disclosure { margin-top: var(--space-4); border-top: var(--border-width) solid var(--border); padding-top: var(--space-3); }
+.disclosure summary { cursor: pointer; font-size: var(--text-14); font-weight: 500; color: var(--muted-foreground); min-height: var(--control); display: flex; align-items: center; }
+.disclosure[open] summary { margin-bottom: var(--space-3); }
+
+/* Examples: a table from medium width up, a two-line list on a compact one. */
+
+.examples { width: 100%; border-collapse: collapse; margin-top: var(--space-4); }
+.examples th {
+  text-align: start;
+  font-size: var(--text-14);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  padding: 0 0 var(--space-2);
+  border-bottom: var(--border-width) solid var(--border);
+}
+.examples td { padding: var(--space-2) 0; border-bottom: var(--border-width) solid var(--border); vertical-align: top; }
+.examples td:first-child { padding-inline-end: var(--space-4); }
+.examples tr:last-child td { border-bottom: 0; }
+.examples button.use {
+  min-height: auto;
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  border-color: transparent;
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-weight: 400;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.examples button.use:hover { background: var(--accent); }
+.examples .long { color: var(--muted-foreground); font-size: var(--text-14); }
+.examples .chip { min-height: 1.5rem; }
+
+@media (max-width: 599px) {
+  .examples thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .examples tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; border-bottom: var(--border-width) solid var(--border); padding: var(--space-2) 0; }
+  .examples tr:last-child { border-bottom: 0; }
+  .examples td { display: block; padding: 0; border: 0; }
+  .examples td:first-child { padding-inline-end: 0; }
+}
+
+/* Footer */
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding-top: var(--space-4);
+  font-size: var(--text-14);
+}
+.foot a { color: var(--link); text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 0.2em; }
+.foot a:hover { color: var(--link-hover); }
+.foot [hidden] { display: none; }
+
+.noscript { margin: var(--space-4); color: var(--muted-foreground); }
+
+/* Forced colours: keep the hairlines and the chips' edges. */
+@media (forced-colors: active) {
+  .card, .chip, .topbar, .address, .share-panel, .share-glyph, button, input[type="text"] { border-color: CanvasText; }
+  .dot { background: Highlight; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
+
+/* Touch: every control is 48 px, Material's minimum, whatever rule sized it
+ * above. Last, so nothing overrides it. */
+@media (pointer: coarse) {
+  :root { --bar-control: var(--touch); }
+  button, button.ghost, button.primary, button.secondary, .ghost, a.ghost, input[type="text"], .disclosure summary { min-height: var(--touch); }
+  .row { gap: var(--space-2); }
+}

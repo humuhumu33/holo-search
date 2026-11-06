@@ -1,0 +1,133 @@
+/* Holo Search's page body, inside the Prism frame.
+ * The top bar, the share panel, the type, the colours and the controls are
+ * the frame's (site/prism-page.css and the brand, pinned by frame.lock and
+ * brand.lock, loaded before this file). This file styles only what Holo
+ * Search adds below the bar: the search card, the app it opens, the proof
+ * sheet, and the apps' own screens. It declares no colour: every one is a
+ * brand variable. */
+
+/* The runtime's own controls (its old search bar, its share button) stay in
+ * the document so the verified runtime finds every element it binds, but the
+ * frame's top bar does their work. */
+#engine { display: none; }
+
+/* The open app replaces the search card; the identity card beside it
+ * describes whichever is showing. */
+#app-page:not([hidden]) + #home-card { display: none; }
+#app-page[hidden] { display: none; }
+
+.lede:empty { display: none; }
+
+/* What Holo Search answered: the model's reply to what was typed. */
+.answer .q { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1) var(--space-3); margin: 0 0 var(--space-1); color: var(--muted-foreground); font-family: var(--font-mono); font-size: var(--text-14); overflow-wrap: anywhere; }
+.answer .q:has(#echo:empty):has(#cost:empty) { display: none; }
+.answer .a { margin: 0 0 var(--space-4); font-size: var(--text-16); overflow-wrap: anywhere; }
+.answer .a:empty { display: none; }
+.answer .a.bad { color: var(--destructive); }
+.hint { margin: 0 0 var(--space-4); }
+.status-line { display: block; margin: var(--space-2) 0 0; font-size: var(--text-14); overflow-wrap: anywhere; }
+.facts [hidden], #home-card [hidden] { display: none; }
+.facts a:not(.ghost) { color: var(--link); text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 0.2em; }
+.facts a:not(.ghost):hover { color: var(--link-hover); }
+
+/* The app, drawn from the Screen its model declares. The runtime writes the
+ * app's declared theme onto #app-page; inside the frame the brand sets the
+ * look, so the canvas maps the runtime's variables back to the brand's and
+ * the Screen keeps only its structure. */
+#canvas {
+  --bg: var(--card);
+  --sheet: var(--background);
+  --fg: var(--foreground);
+  --muted: var(--muted-foreground);
+  --faint: var(--muted-foreground-subtle);
+  --line: var(--input);
+  --accent: var(--ring);
+  --ok: var(--success);
+  --bad: var(--destructive);
+  --t-xs: var(--text-14);
+  --t-s: var(--text-16);
+  --t-m: var(--text-20);
+  --t-l: var(--text-30);
+  --s-1: var(--space-1);
+  --s-2: var(--space-2);
+  --s-3: var(--space-3);
+  --s-4: var(--space-4);
+  --s-5: var(--space-6);
+  --s-6: var(--space-8);
+  --s-7: var(--space-12);
+  --control: 2.25rem;
+  --bar-h: var(--control);
+  min-width: 0;
+}
+.appcard { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); align-content: start; }
+.appcard .stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+.appcard .row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: end; gap: var(--space-3); }
+.appcard .field { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+.appcard h1, .appcard h2 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--text-20); letter-spacing: var(--tracking-display); line-height: 1.2; }
+.appcard p { margin: 0; }
+.appcard label, .appcard .legend { font-size: var(--text-14); font-weight: 500; color: var(--muted-foreground); }
+.appcard input, .appcard select, .appcard textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  border: var(--border-width) solid var(--input);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: var(--text-16);
+}
+.appcard textarea { padding: var(--space-2) var(--space-3); }
+.appcard input::placeholder { color: var(--muted-foreground); }
+.options { display: grid; gap: var(--space-2); }
+.options button[aria-checked="true"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.appcard output { display: block; min-height: 2.5rem; margin-top: var(--space-1); font-family: var(--font-display); font-weight: 600; font-size: var(--text-30); line-height: 1.2; letter-spacing: var(--tracking-display); overflow-wrap: anywhere; }
+.appcard output.tone-neutral { color: var(--muted-foreground); font-family: var(--font-sans); font-weight: 400; font-size: var(--text-16); letter-spacing: 0; }
+.appcard output.tone-error { color: var(--destructive); font-family: var(--font-sans); font-weight: 400; font-size: var(--text-16); letter-spacing: 0; }
+.appcard .meta { min-height: 1.5rem; font-family: var(--font-mono); font-size: var(--text-14); color: var(--muted-foreground); overflow-wrap: anywhere; }
+.appcard.uv { width: 100%; }
+#canvas .holoview { display: block; width: 100%; max-width: 100%; border: var(--border-width) solid var(--border); border-radius: var(--radius-control); background: var(--background); }
+
+/* The proof sheet: every step the runtime took, and the evidence for it. */
+dialog#proof {
+  width: min(45rem, 100vw - 2rem);
+  max-height: calc(100dvh - 4rem);
+  margin: auto;
+  padding: var(--space-6);
+  overflow: auto;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-overlay);
+}
+.dark dialog#proof { box-shadow: none; border-color: var(--border-strong); }
+dialog#proof::backdrop { background: var(--scrim); }
+dialog#proof h2 { margin: 0 0 var(--space-4); }
+dialog#proof h3 { margin: var(--space-6) 0 var(--space-2); font-size: var(--text-14); font-weight: 500; color: var(--muted-foreground); }
+dialog#proof .close { float: right; margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0 0; }
+#steps { display: grid; gap: var(--space-1); margin: 0; padding: 0; list-style: none; font-size: var(--text-14); }
+#steps li { display: grid; grid-template-columns: 1.25rem minmax(0, 1fr); overflow-wrap: anywhere; }
+#evidence dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--text-14); }
+#evidence dt { color: var(--muted-foreground); }
+#evidence dd { margin: 0; font-family: var(--font-mono); overflow-wrap: anywhere; }
+#evidence p { margin: 0; font-size: var(--text-14); overflow-wrap: anywhere; }
+.vectors { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px var(--space-3); font-family: var(--font-mono); font-size: var(--text-14); }
+.vectors span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rebuild { display: grid; gap: var(--space-2); font-size: var(--text-14); }
+.rebuild p { margin: 0; }
+.rebuild-go { justify-self: start; }
+.rebuild-out { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.ok-t { color: var(--success); }
+.bad-t { color: var(--destructive); }
+.muted-t { color: var(--muted-foreground); }
+
+@media (max-width: 599px) {
+  dialog#proof { padding: var(--space-4); }
+  .vectors { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (pointer: coarse) {
+  #canvas { --control: var(--touch); }
+}

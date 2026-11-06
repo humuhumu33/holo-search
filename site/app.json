@@ -1,0 +1,8 @@
+{
+  "name": "Holo Search",
+  "shortName": "Holo Search",
+  "live": "https://humuhumu33.github.io/holo-search/",
+  "purpose": "Search and run self-verifying Prism apps by their address. Each app is checked against its address and its own acceptance vectors in your browser before it opens.",
+  "repository": "https://github.com/humuhumu33/holo-search",
+  "report": "https://github.com/humuhumu33/holo-search/blob/main/VERIFICATION.md"
+}

@@ -3,3 +3,10 @@
 registry/** -text
 src/*.lex.tex -text
 index.html -text
+# The Prism frame and the brand are pinned byte for byte by frame.lock and
+# brand.lock, and the page is built from them: no line ending is converted.
+bootstrap/** -text
+site/** -text
+frame.lock -text
+brand.lock -text
+lighthouserc.json -text
