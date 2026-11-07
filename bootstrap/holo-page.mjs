@@ -140,7 +140,16 @@ const page = await read("site/page.template.html");
 const frameStart = page.indexOf("    <prism-frame ");
 const frameEnd = page.indexOf("    </prism-frame>\n", frameStart) + "    </prism-frame>\n".length;
 if (frameStart < 0 || frameEnd < frameStart) fail("site/page.template.html has no <prism-frame>");
-const header = fill(page.slice(frameStart, frameEnd), frameFill).trimEnd();
+// The shield's proof row: what the app's theorem guarantees and its
+// attestation, from app.json when it names them. An attribute with nothing
+// to say is left off, and the frame shows only the checks it has.
+const optional = { PROP_PLAIN: meta.proposition?.plain, ATT_PROOF_URL: meta.attestations?.proof?.url };
+let element = page.slice(frameStart, frameEnd);
+for (const [key, value] of Object.entries(optional)) {
+  if (value) frameFill[key] = escape(value);
+  else element = element.replace(new RegExp(` [a-z-]+="\\{\\{${key}\\}\\}"`, "g"), "");
+}
+const header = fill(element, frameFill).trimEnd();
 if (/\{\{[A-Z_]+\}\}/.test(header)) fail(`the frame element has an unfilled value: ${header.match(/\{\{[A-Z_]+\}\}/)[0]}`);
 
 // The styles, inlined as page.mjs inlines them; the fonts go in as data, so

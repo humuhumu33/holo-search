@@ -32,7 +32,7 @@
     <script>{{INLINE_THEME}}</script>
   </head>
   <body>
-    <prism-frame id="frame" name="{{NAME}}" address="{{HOLO_NAME}}" live="{{LIVE}}" repo="{{REPO}}" home="{{HOLO_SEARCH}}" purpose="{{PURPOSE}}" card="{{OG_IMAGE}}" identity="#identity-title">
+    <prism-frame id="frame" name="{{NAME}}" address="{{HOLO_NAME}}" live="{{LIVE}}" repo="{{REPO}}" home="{{HOLO_SEARCH}}" purpose="{{PURPOSE}}" card="{{OG_IMAGE}}" identity="#identity-title" proof="{{PROP_PLAIN}}" proof-url="{{ATT_PROOF_URL}}">
       <a class="frame-fallback" href="{{HOLO_SEARCH}}"><span class="dot" aria-hidden="true"></span><span class="scheme">holo://</span>{{HOLO_NAME}}</a>
       <span slot="status" id="update" class="chip chip-warn" hidden><button id="reload" class="bare" type="button">Update available. Reload</button></span>
     </prism-frame>
@@ -44,6 +44,7 @@
 
       <div class="panes">
         <div class="pane">
+{{APP_CARD}}
           <section class="card" aria-labelledby="identity-title">
             <h2 id="identity-title">Identity</h2>
             <dl class="facts">
@@ -106,7 +107,7 @@
             <form id="form" class="try">
               <label for="request" id="request-label">{{INPUT_LABEL}}</label>
               <div class="row">
-                <input id="request" type="text" autocomplete="off" spellcheck="false" inputmode="numeric" enterkeyhint="send" placeholder="{{PLACEHOLDER}}" />
+                <input id="request" type="text" autocomplete="off" spellcheck="false" inputmode="{{INPUT_MODE}}" enterkeyhint="send" placeholder="{{PLACEHOLDER}}" />
                 <button id="submit" class="primary" type="submit">{{SUBMIT_LABEL}}</button>
               </div>
               <p class="hint muted">Text, or <code>hex:</code> followed by bytes.</p>
