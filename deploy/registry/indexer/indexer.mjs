@@ -218,7 +218,6 @@ async function verify(candidate) {
     purpose: typeof meta.purpose === "string" ? meta.purpose : "",
     proposition: typeof meta.proposition?.plain === "string" ? meta.proposition.plain : null,
     fingerprint,
-    address: `blake3:${fingerprint}`,
     card: `${PUBLIC_HOST}/${name}@${digest}`,
     holo: { url: holoUrl, sha256: card.sha256, bytes: card.bytes },
     examples: { passed: result.passed, total: result.total },

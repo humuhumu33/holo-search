@@ -235,7 +235,15 @@ top: 0;
 z-index: 10;
 min-height: calc(var(--safe-top) + var(--frame-bar));
 }
-prism-frame:not(:defined) {
+@view-transition { navigation: auto; }
+prism-frame { view-transition-name: prism-frame; }
+:root { color-scheme: light; }
+:root.dark { color-scheme: dark; }
+::view-transition-group(*) { animation-duration: 160ms; animation-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+@media (prefers-reduced-motion: reduce) {
+@view-transition { navigation: none; }
+}
+prism-frame:not(:defined):not([data-shell]) {
 padding-top: var(--safe-top);
 background: var(--sidebar);
 }
@@ -817,7 +825,635 @@ dialog#proof { padding: var(--space-4); }
       <span id="try-sep" hidden></span>
       <span id="dot" class="busy"></span>
     </div>
-    <prism-frame id="frame" name="Holo Search" address="holo-search" live="https://humuhumu33.github.io/holo-search/" repo="https://github.com/humuhumu33/holo-search" home="https://humuhumu33.github.io/holo-search/" purpose="Search and run self-verifying Prism apps by their address. Each app is checked against its address and its own acceptance vectors in your browser before it opens." card="https://humuhumu33.github.io/holo-search/og.png" identity="#identity-title">
+    <prism-frame id="frame" name="Holo Search" address="holo-search" live="https://humuhumu33.github.io/holo-search/" repo="https://github.com/humuhumu33/holo-search" home="https://humuhumu33.github.io/holo-search/" purpose="Search and run self-verifying Prism apps by their address. Each app is checked against its address and its own acceptance vectors in your browser before it opens." card="https://humuhumu33.github.io/holo-search/og.png" identity="#identity-title" stars="1" data-shell="c459fb17885f5e627b4a390c4cc5c251f35e018548b2088177c05f3afb4463b8"><template shadowrootmode="open"><style>:host {
+--text-14: 0.875rem;
+--text-16: 1rem;
+--space-1: 0.25rem;
+--space-2: 0.5rem;
+--space-3: 0.75rem;
+--space-4: 1rem;
+--margin: 1rem;
+--column: 45rem;
+--control: 2.25rem;
+--bar-control: 2rem;
+--touch: 3rem;
+--hit: var(--bar-control);
+--radius-control: calc(var(--radius) - 2px);
+--safe-top: env(safe-area-inset-top, 0px);
+--safe-left: env(safe-area-inset-left, 0px);
+--safe-right: env(safe-area-inset-right, 0px);
+--spectrum-red: #fb5661;
+--spectrum-orange: #fa792e;
+--spectrum-amber: #f9cf24;
+--spectrum-yellow: #f6e41e;
+--spectrum-green: #25d05e;
+--spectrum-cyan: #20d0f3;
+--spectrum-blue: #4f81f8;
+--spectrum-violet: #ae6ff6;
+--spectrum-pink: #f368c5;
+--spectrum: linear-gradient(100deg,
+var(--spectrum-red) 0%, var(--spectrum-orange) 7%, var(--spectrum-amber) 14%, var(--spectrum-yellow) 19%,
+var(--spectrum-green) 25%, var(--spectrum-cyan) 31%, var(--spectrum-blue) 38%, var(--spectrum-violet) 45%,
+var(--spectrum-pink) 48%, var(--spectrum-red) 50%, var(--spectrum-orange) 57%, var(--spectrum-amber) 64%,
+var(--spectrum-yellow) 69%, var(--spectrum-green) 75%, var(--spectrum-cyan) 81%, var(--spectrum-blue) 88%,
+var(--spectrum-violet) 95%, var(--spectrum-pink) 98%, var(--spectrum-red) 100%);
+--chrome: var(--sidebar, var(--muted));
+--field: light-dark(var(--card), color-mix(in oklab, var(--chrome), var(--foreground) 3%));
+--field-border: var(--border);
+--gutter: 0.5rem;
+--window-radius: 0.75rem;
+--frame-height: calc(var(--safe-top) + var(--bar-control) + 0.875rem);
+display: block;
+position: sticky;
+top: 0;
+z-index: 10;
+color: var(--foreground);
+font-family: var(--font-sans);
+font-size: var(--text-16);
+line-height: 1.5;
+-webkit-font-smoothing: antialiased;
+}
+@media (min-width: 600px) { :host { --margin: 1.5rem; } }
+@media (min-width: 840px) { :host { --column: 80rem; } }
+@media (pointer: coarse) { :host { --hit: var(--touch); } }
+:host([dark]) { color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+:focus-visible {
+outline: var(--ring-width) solid var(--ring);
+outline-offset: var(--ring-offset);
+}
+button, input, .ghost { font: inherit; font-size: var(--text-14); }
+button {
+min-height: var(--control);
+padding: 0 var(--space-4);
+border-radius: var(--radius-control);
+border: var(--border-width) solid var(--border);
+background: var(--secondary);
+color: var(--secondary-foreground);
+font-weight: 500;
+cursor: pointer;
+transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+button:hover { background: var(--accent); }
+button:active { background: var(--accent-pressed); }
+button.primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+button.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+.ghost, button.ghost {
+display: inline-flex;
+align-items: center;
+min-height: var(--control);
+padding: 0 var(--space-3);
+border-radius: var(--radius-control);
+border: var(--border-width) solid transparent;
+background: transparent;
+color: var(--muted-foreground);
+text-decoration: none;
+font-weight: 500;
+}
+.ghost:hover, button.ghost:hover { background: var(--accent); color: var(--accent-foreground); }
+.chip {
+display: inline-flex;
+align-items: center;
+border-radius: var(--radius-control);
+border: var(--border-width) solid var(--border);
+transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+.chip-wait { color: var(--muted-foreground); }
+.chip-good { color: var(--success); }
+.chip-bad { color: var(--destructive); }
+.bar {
+position: relative;
+padding-top: var(--safe-top);
+background: var(--chrome);
+container: bar / inline-size;
+}
+.canvas {
+position: fixed;
+top: var(--frame-height);
+left: calc(var(--gutter) + var(--safe-left));
+right: calc(var(--gutter) + var(--safe-right));
+bottom: max(var(--gutter), env(safe-area-inset-bottom, 0px));
+border-radius: var(--window-radius);
+box-shadow: inset 0 0 0 var(--border-width) var(--border), 0 0 0 100vmax var(--chrome);
+pointer-events: none;
+}
+@keyframes spectrum-drift { to { background-position: 200% 0; } }
+.inner {
+display: flex;
+flex-wrap: wrap;
+align-items: center;
+gap: var(--space-2);
+padding: 0.5rem calc(var(--gutter) + var(--safe-right)) 0.375rem calc(var(--gutter) + var(--safe-left));
+}
+.start, .end { flex: none; display: flex; align-items: center; gap: var(--space-2); }
+.end { justify-content: flex-end; }
+svg {
+flex: none;
+width: 1.25rem;
+height: 1.25rem;
+fill: none;
+stroke: currentColor;
+stroke-width: 1.75;
+stroke-linecap: round;
+stroke-linejoin: round;
+}
+svg.gh, svg.fill { fill: currentColor; stroke: none; }
+.ghost.icon {
+position: relative;
+isolation: isolate;
+flex: none;
+justify-content: center;
+height: var(--hit);
+min-height: var(--hit);
+margin-block: calc((var(--bar-control) - var(--hit)) / 2);
+padding: 0;
+border: 0;
+transition: color var(--duration) var(--ease);
+}
+.ghost.icon {
+width: var(--hit);
+margin-inline: calc((var(--bar-control) - var(--hit)) / 2);
+color: var(--muted-foreground);
+}
+.ghost.icon, .ghost.icon:hover, .ghost.icon:active { background: none; }
+.ghost.icon::before {
+content: "";
+position: absolute;
+z-index: -1;
+border: var(--border-width) solid transparent;
+transition: background var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+.ghost.icon::before { inset: calc((var(--hit) - var(--bar-control)) / 2); border-radius: var(--radius-control); }
+.ghost.icon svg { width: 1rem; height: 1rem; stroke-width: 1.6; }
+.ghost.icon svg.gh { width: 0.9375rem; height: 0.9375rem; }
+#github .stars { display: none; }
+#github.starred { width: auto; gap: 0.375rem; padding-inline: 0.5rem; margin-inline: calc((1.5rem - var(--hit)) / 2 + 0.25rem) 0; }
+#github.starred::before { inset: calc((var(--hit) - 1.5rem) / 2) 0; border-radius: 999px; }
+#github.starred .stars { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; color: var(--muted-foreground); }
+#github .stars svg.star { width: 0.75rem; height: 0.75rem; fill: #e3b341; stroke: none; }
+#github.starred:hover .stars { color: var(--foreground); }
+#home { color: var(--foreground); }
+#home svg.mark { width: 1.25rem; height: 1.25rem; shape-rendering: geometricPrecision; }
+.ghost.icon:hover { color: var(--foreground); }
+.ghost.icon:hover::before { background: color-mix(in oklab, var(--chrome), var(--foreground) 7%); }
+.ghost.icon:active::before { background: color-mix(in oklab, var(--chrome), var(--foreground) 11%); transform: scale(0.94); }
+.ghost.icon:focus-visible { outline: none; }
+.ghost.icon:focus-visible::before { outline: var(--ring-width) solid var(--ring); outline-offset: var(--ring-offset); }
+.ghost.icon.inset {
+width: var(--hit);
+margin: calc((1.5rem - var(--hit)) / 2);
+margin-inline-end: calc((1.5rem - var(--hit)) / 2 + 0.125rem);
+}
+.ghost.icon.inset::before { inset: calc((var(--hit) - 1.5rem) / 2); border-radius: 50%; }
+.inner.editing #share, .inner.editing #github, .inner.editing .sep { display: none; }
+.address .sep { flex: none; width: var(--border-width); height: 1rem; margin-inline: 0.125rem; background: var(--border-strong); }
+#github[hidden] + .sep { display: none; }
+:host([fullscreen]) #fullscreen .expand, :host(:not([fullscreen])) #fullscreen .shrink { display: none; }
+.address {
+position: relative;
+flex: 1 1 10rem;
+min-width: 0;
+display: flex;
+align-items: center;
+gap: var(--space-2);
+min-height: var(--bar-control);
+margin: 0;
+padding: 0 var(--space-1);
+border: var(--border-width) solid var(--field-border);
+border-radius: 999px;
+background: var(--field);
+font-size: var(--text-14);
+white-space: nowrap;
+cursor: text;
+transition: background var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+.address:hover { background: color-mix(in oklab, var(--field), var(--foreground) 3%); }
+.address:has(.omnibox:focus), .inner.editing .address { background: var(--background); border-color: transparent; }
+.address::before {
+content: "";
+position: absolute;
+inset: calc(-1 * var(--border-width));
+border-radius: inherit;
+background-image: var(--spectrum);
+background-size: 200% 100%;
+opacity: 0;
+pointer-events: none;
+transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.address::before {
+padding: 1px;
+-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+-webkit-mask-composite: xor;
+mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.address:has(.omnibox:focus)::before, .inner.editing .address::before { opacity: 0.85; animation: spectrum-drift 24s linear infinite; }
+@media (min-resolution: 2dppx) { .address::before { padding: 1.5px; } }
+.field { position: relative; flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; }
+.url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.scheme { color: var(--muted-foreground); }
+.host { color: var(--foreground); font-weight: 500; }
+.address:has(.omnibox:focus) .url, .inner.editing .address .url { visibility: hidden; }
+.address .omnibox {
+position: absolute;
+inset: calc(-1 * var(--border-width)) 0;
+width: 100%;
+min-width: 0;
+min-height: 0;
+height: auto;
+margin: 0;
+padding: 0;
+border: 0;
+border-radius: 0;
+background: transparent;
+color: transparent;
+caret-color: var(--foreground);
+font-family: var(--font-sans);
+font-size: var(--text-14);
+font-weight: 500;
+outline: none;
+}
+.address .omnibox:focus, .inner.editing .address .omnibox { color: var(--foreground); }
+.address .omnibox::placeholder { color: var(--muted-foreground); font-weight: 400; }
+.address .omnibox::selection { background: var(--primary); color: var(--primary-foreground); }
+.omnibox-list {
+position: absolute;
+top: calc(100% + var(--space-2));
+left: 0;
+right: 0;
+z-index: 2;
+max-height: min(26rem, 70vh);
+margin: 0;
+padding: var(--space-1);
+overflow: auto;
+list-style: none;
+border: var(--border-width) solid var(--border);
+border-radius: var(--radius);
+background: var(--popover);
+color: var(--popover-foreground);
+box-shadow: var(--shadow-overlay);
+white-space: normal;
+cursor: default;
+}
+:host([dark]) .omnibox-list { box-shadow: none; border-color: var(--border-strong); }
+.opt {
+display: flex;
+align-items: center;
+gap: var(--space-3);
+min-height: 2.5rem;
+padding: 0 var(--space-3);
+border-radius: var(--radius-control);
+font-size: var(--text-14);
+white-space: nowrap;
+cursor: pointer;
+}
+@media (pointer: coarse) { .opt { min-height: var(--touch); } }
+.opt[aria-selected="true"] { background: var(--accent); }
+.opt-icon {
+flex: none;
+display: grid;
+place-items: center;
+width: 1.5rem;
+height: 1.5rem;
+color: var(--muted-foreground);
+}
+.opt-icon img { display: block; width: 1.5rem; height: 1.5rem; border-radius: 0.375rem; object-fit: cover; }
+.opt-icon svg { width: 1rem; height: 1rem; }
+.opt-tile {
+display: grid;
+place-items: center;
+width: 1.5rem;
+height: 1.5rem;
+border-radius: 0.375rem;
+background: oklch(0.6 0.11 var(--tile-hue, 250));
+color: #fff;
+font-family: var(--font-display);
+font-size: 0.75rem;
+font-weight: 600;
+line-height: 1;
+}
+:host([dark]) .opt-tile { background: oklch(0.52 0.1 var(--tile-hue, 250)); }
+.opt-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--muted-foreground); }
+.opt-title b { font-weight: 600; color: var(--foreground); }
+.opt-sub { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-mono); font-size: 0.8125rem; color: var(--muted-foreground); }
+.opt-fill { flex: 1 1 0; min-width: 0; }
+.opt-owner { flex: none; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; font-size: 0.8125rem; color: var(--muted-foreground); }
+.opt-stars { flex: none; display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.25rem; min-width: 3.25rem; font-size: 0.8125rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+.opt-stars.unknown { visibility: hidden; }
+.opt-stars svg.star { width: 0.75rem; height: 0.75rem; fill: #e3b341; stroke: none; }
+.opt-stars svg.gh { width: 0.8125rem; height: 0.8125rem; margin-inline-end: 0.125rem; color: var(--muted-foreground); }
+.opt-note { padding: var(--space-2) var(--space-3); font-size: var(--text-14); color: var(--muted-foreground); }
+.trust svg, .trust-badge svg { width: 1.0625rem; height: 1.0625rem; stroke-width: 1.6; }
+.trust .body, .trust-badge .body { fill: currentColor; fill-opacity: 0.16; }
+.trust .ok, .trust .bad, .trust-badge .ok, .trust-badge .bad { display: none; }
+.trust.good .ok, .trust.bad .bad, .trust-badge.good .ok, .trust-badge.bad .bad { display: inline; }
+.trust.good .wait, .trust.bad .wait, .trust-badge.good .wait, .trust-badge.bad .wait { display: none; }
+#trust.good, #trust.good:hover, .trust-badge.good { color: var(--success); }
+#trust.bad, #trust.bad:hover, .trust-badge.bad { color: var(--destructive); }
+#trust.wait, .trust-badge.wait { color: var(--muted-foreground); }
+.trust-panel {
+position: fixed;
+inset: var(--trust-top, 3rem) auto auto var(--trust-left, 1rem);
+width: min(22rem, 100vw - 2rem);
+max-height: calc(100vh - var(--trust-top, 3rem) - 1rem);
+margin: 0;
+padding: var(--space-2);
+overflow: auto;
+border: var(--border-width) solid var(--border);
+border-radius: var(--radius);
+background: var(--popover);
+color: var(--popover-foreground);
+box-shadow: var(--shadow-overlay);
+font-size: var(--text-14);
+line-height: 1.45;
+transform-origin: top left;
+transition: opacity var(--duration) var(--ease), transform var(--duration) var(--ease), overlay var(--duration) allow-discrete, display var(--duration) allow-discrete;
+}
+.trust-panel:not(:popover-open) { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+@starting-style {
+.trust-panel:popover-open { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+}
+:host([dark]) .trust-panel { box-shadow: none; border-color: var(--border-strong); }
+.trust-panel p { margin: 0; }
+.trust-head {
+display: flex;
+align-items: center;
+gap: var(--space-3);
+padding: var(--space-2) var(--space-2) var(--space-3);
+border-bottom: var(--border-width) solid var(--border);
+}
+.trust-badge {
+flex: none;
+display: grid;
+place-items: center;
+width: 2.25rem;
+height: 2.25rem;
+border-radius: 50%;
+background: color-mix(in oklab, currentColor 12%, transparent);
+}
+.trust-badge svg { width: 1.25rem; height: 1.25rem; }
+.trust-words { min-width: 0; }
+.trust-title { font-family: var(--font-display); font-size: var(--text-16); font-weight: 600; letter-spacing: var(--tracking-display); }
+.trust-sub { color: var(--muted-foreground); }
+.checks { margin: 0; padding: var(--space-2) 0; list-style: none; }
+.check { display: flex; gap: var(--space-3); padding: var(--space-2); }
+.check .mark { flex: none; display: grid; place-items: center; width: 1.25rem; height: 1.3125rem; }
+.check .mark svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.75; }
+.check .ok, .check .bad { display: none; }
+.check.good .ok, .check.bad .bad { display: inline; }
+.check.good .wait, .check.bad .wait { display: none; }
+.check.good .mark { color: var(--success); }
+.check.bad .mark { color: var(--destructive); }
+.check.wait .mark { color: var(--muted-foreground); }
+.check-words { min-width: 0; display: grid; gap: 0.125rem; }
+.check-title { font-weight: 600; }
+.check-detail { color: var(--muted-foreground); overflow-wrap: anywhere; }
+#check-proved .check-detail { color: var(--foreground); }
+.check-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); color: var(--muted-foreground); font-size: 0.8125rem; }
+.check-meta code { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--foreground); }
+.trust-panel .text {
+min-height: 0;
+padding: 0;
+border: 0;
+background: none;
+color: var(--foreground);
+font: inherit;
+font-weight: 500;
+text-decoration: underline;
+text-decoration-color: var(--border-strong);
+text-underline-offset: 0.2em;
+cursor: pointer;
+}
+.trust-panel .text:hover { background: none; text-decoration-color: currentColor; }
+.trust-details {
+display: flex;
+align-items: center;
+justify-content: space-between;
+min-height: 2.5rem;
+padding: 0 var(--space-2);
+border-top: var(--border-width) solid var(--border);
+border-radius: 0 0 calc(var(--radius) - var(--space-2)) calc(var(--radius) - var(--space-2));
+color: var(--foreground);
+font-weight: 500;
+text-decoration: none;
+}
+.trust-details:hover { background: var(--accent); }
+.trust-details svg { width: 1rem; height: 1rem; color: var(--muted-foreground); }
+@media (pointer: coarse) {
+.trust-panel button.text { min-width: var(--touch); min-height: var(--touch); margin-block: calc((1lh - var(--touch)) / 2); display: inline-flex; align-items: center; justify-content: center; }
+.trust-details { min-height: var(--touch); }
+}
+#share .done, #share.copied .share { display: none; }
+#share.copied .done { display: inline; }
+.share-panel {
+position: fixed;
+inset: var(--share-top, 4rem) var(--share-right, 1rem) auto auto;
+width: min(23rem, 100vw - 2rem);
+max-height: calc(100vh - var(--share-top, 4rem) - 1rem);
+margin: 0;
+padding: var(--space-4);
+overflow: auto;
+border: var(--border-width) solid var(--border);
+border-radius: var(--radius);
+background: var(--popover);
+color: var(--popover-foreground);
+box-shadow: var(--shadow-overlay);
+transform-origin: top right;
+transition: opacity var(--duration) var(--ease), transform var(--duration) var(--ease), overlay var(--duration) allow-discrete, display var(--duration) allow-discrete;
+}
+.share-panel:not(:popover-open) { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+@starting-style {
+.share-panel:popover-open { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+}
+:host([dark]) .share-panel { box-shadow: none; border-color: var(--border-strong); }
+.share-title {
+margin: 0 0 var(--space-3);
+font-family: var(--font-display);
+font-weight: 600;
+font-size: var(--text-16);
+letter-spacing: var(--tracking-display);
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+}
+.share-image {
+aspect-ratio: 1200 / 630;
+margin: 0 0 var(--space-3);
+border: var(--border-width) solid var(--border);
+border-radius: var(--radius-control);
+overflow: hidden;
+background: var(--muted);
+}
+.share-image img { display: block; width: 100%; height: 100%; }
+.share-link {
+display: flex;
+align-items: center;
+gap: var(--space-2);
+margin: 0 0 var(--space-4);
+padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+border: var(--border-width) solid var(--input);
+border-radius: var(--radius-control);
+background: var(--background);
+}
+.share-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: var(--text-14); color: var(--muted-foreground); }
+#share-copy { flex: none; display: inline-flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); }
+#share-copy svg { width: 1rem; height: 1rem; }
+#share-copy .done, #share-copy.copied .link { display: none; }
+#share-copy.copied .done { display: inline; }
+.share-targets {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr));
+gap: var(--space-2);
+margin: 0;
+padding: 0;
+list-style: none;
+}
+.share-target {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: var(--space-1);
+width: 100%;
+min-height: auto;
+padding: var(--space-1) 0;
+border: 0;
+border-radius: var(--radius-control);
+background: transparent;
+color: var(--muted-foreground);
+font-size: var(--text-14);
+font-weight: 500;
+text-decoration: none;
+cursor: pointer;
+}
+.share-target:hover { background: transparent; color: var(--foreground); }
+.share-glyph {
+display: grid;
+place-items: center;
+width: var(--touch);
+height: var(--touch);
+border: var(--border-width) solid var(--border);
+border-radius: 50%;
+background: var(--secondary);
+color: var(--foreground);
+transition: background var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+.share-target:hover .share-glyph { background: var(--accent); }
+.share-target:active .share-glyph { transform: scale(0.94); }
+#theme { display: inline-grid; place-items: center; }
+#theme svg { grid-area: 1 / 1; }
+#theme .moon { color: light-dark(currentColor, transparent); }
+#theme .sun { color: light-dark(transparent, currentColor); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 599px) {
+:host { --window-radius: 0.625rem; }
+.inner { gap: var(--space-1); }
+.start, .end { flex: none; gap: var(--space-1); }
+.address { flex-basis: 8rem; }
+#github, .address .sep { display: none; }
+.opt-sub { display: none; }
+.inner.editing > :not(.address) { display: none; }
+}
+@container bar (width < 20rem) {
+.inner { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "start . end" "address address address"; }
+.start { grid-area: start; }
+.end { grid-area: end; }
+.address { grid-area: address; }
+}
+@media (max-height: 480px) {
+:host { position: static; }
+.canvas { display: none; }
+}
+@media print {
+.canvas { display: none; }
+}
+@media (pointer: coarse) {
+button:not(.icon), .ghost:not(.icon) { min-height: var(--touch); }
+.address .omnibox { inset: calc((var(--bar-control) - var(--touch)) / 2 - var(--border-width)) 0; }
+}
+@media (forced-colors: active) {
+.bar, .chip, .address, .share-panel, .share-glyph, button { border-color: CanvasText; }
+.address::before { display: none; }
+.address:has(.omnibox:focus) { border-color: Highlight; }
+.canvas { box-shadow: inset 0 0 0 1px CanvasText, 0 0 0 100vmax Canvas; }
+}
+@media (prefers-reduced-motion: reduce) {
+*, *::before, *::after { transition: none !important; }
+.address::before { animation: none !important; }
+}</style>
+  <div class="canvas" aria-hidden="true"></div>
+  <div class="bar"><div class="inner">
+    <div class="start">
+      <a id="home" class="ghost icon" href="https://humuhumu33.github.io/holo-search/" aria-label="Hologram: home" title="Hologram"><svg class="mark fill" viewBox="-104 -104 208 208" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></svg></a>
+    </div>
+    <form id="address" class="address" role="search" action="https://humuhumu33.github.io/holo-search/" method="get" autocomplete="off">
+      <button id="trust" class="ghost icon inset trust wait" type="button" popovertarget="trust-panel" aria-label="Verifying this app" title="Verifying this app"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path class="body" d="M12 3 4 6v6c0 4.6 3.4 8.4 8 9 4.6-.6 8-4.4 8-9V6z" /><path class="wait" d="M8.5 12h.01M12 12h.01M15.5 12h.01" /><path class="ok" d="m8.5 12 2.5 2.5 4.5-5" /><path class="bad" d="M12 8v4.5M12 16h.01" /></svg></button>
+      <span class="field">
+        <span class="url" aria-hidden="true"><span class="scheme">holo://</span><span class="host">holo-search</span></span>
+        <input id="omnibox" class="omnibox" name="r" type="text" value="holo://holo-search" role="combobox" aria-label="Search Prism apps, or paste a holo address or hash" aria-autocomplete="list" aria-expanded="false" aria-controls="omnibox-list" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" />
+      </span>
+      <a id="github" class="ghost icon inset starred" href="https://github.com/humuhumu33/holo-search" aria-label="Source on GitHub, 1 star" title="Source on GitHub, 1 star"><svg class="gh" viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" /></svg><span class="stars"><svg class="star" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z" /></svg><span id="stars">1</span></span></a>
+      <span class="sep" aria-hidden="true"></span>
+      <button id="share" class="ghost icon inset" type="button" popovertarget="share-panel" aria-label="Share this app" title="Share"><svg class="share" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="17.5" cy="5.5" r="2.5" /><circle cx="6.5" cy="12" r="2.5" /><circle cx="17.5" cy="18.5" r="2.5" /><path d="m8.7 13.3 6.6 3.9M15.3 6.8l-6.6 3.9" /></svg><svg class="done" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg></button>
+      <ul id="omnibox-list" class="omnibox-list" role="listbox" aria-label="Prism apps" hidden></ul>
+    </form>
+    <div class="end">
+    <slot name="status"></slot>
+    <span id="bar-status" class="sr" aria-live="polite"></span>
+    <button id="theme" class="ghost icon" type="button" aria-label="Switch theme" title="Switch theme"><svg class="moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></svg><svg class="sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg></button>
+    <button id="fullscreen" class="ghost icon" type="button" aria-label="Enter full screen" title="Full screen"><svg class="expand" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" /></svg><svg class="shrink" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 4v3.5A1.5 1.5 0 0 1 7.5 9H4M20 9h-3.5A1.5 1.5 0 0 1 15 7.5V4M15 20v-3.5a1.5 1.5 0 0 1 1.5-1.5H20M4 15h3.5A1.5 1.5 0 0 1 9 16.5V20" /></svg></button>
+    </div>
+  </div></div>
+  <div id="trust-panel" class="trust-panel" popover aria-labelledby="trust-title">
+    <div class="trust-head">
+      <span id="trust-badge" class="trust-badge wait"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path class="body" d="M12 3 4 6v6c0 4.6 3.4 8.4 8 9 4.6-.6 8-4.4 8-9V6z" /><path class="wait" d="M8.5 12h.01M12 12h.01M15.5 12h.01" /><path class="ok" d="m8.5 12 2.5 2.5 4.5-5" /><path class="bad" d="M12 8v4.5M12 16h.01" /></svg></span>
+      <div class="trust-words">
+        <p id="trust-title" class="trust-title">Verifying this app</p>
+        <p id="trust-sub" class="trust-sub">Checking it in your browser</p>
+      </div>
+    </div>
+    <ol class="checks">
+      <li id="check-authentic" class="check wait">
+        <span class="mark"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><circle class="ring" cx="12" cy="12" r="9" /><path class="wait" d="M8 12h.01M12 12h.01M16 12h.01" /><path class="ok" d="m8 12.5 2.8 2.8L16.5 9.5" /><path class="bad" d="M12 7.5v5M12 16.2h.01" /></svg></span>
+        <div class="check-words">
+          <p class="check-title">Authentic</p>
+          <p id="authentic-detail" class="check-detail">Checking every byte against its fingerprint</p>
+          <p id="authentic-print" class="check-meta" hidden><code id="trust-print"></code><button id="trust-copy" class="text" type="button">Copy</button></p>
+        </div>
+      </li>
+      <li id="check-proved" class="check wait" hidden>
+        <span class="mark"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><circle class="ring" cx="12" cy="12" r="9" /><path class="wait" d="M8 12h.01M12 12h.01M16 12h.01" /><path class="ok" d="m8 12.5 2.8 2.8L16.5 9.5" /><path class="bad" d="M12 7.5v5M12 16.2h.01" /></svg></span>
+        <div class="check-words">
+          <p class="check-title">Formally proved</p>
+          <p id="proved-detail" class="check-detail"></p>
+          <p class="check-meta"><span>Proved in Lean when this app was built</span><a id="trust-proof" class="text" target="_blank" rel="noopener noreferrer" hidden>Attestation</a></p>
+        </div>
+      </li>
+      <li id="check-replayed" class="check wait" hidden>
+        <span class="mark"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><circle class="ring" cx="12" cy="12" r="9" /><path class="wait" d="M8 12h.01M12 12h.01M16 12h.01" /><path class="ok" d="m8 12.5 2.8 2.8L16.5 9.5" /><path class="bad" d="M12 7.5v5M12 16.2h.01" /></svg></span>
+        <div class="check-words">
+          <p class="check-title">Behaves as proved</p>
+          <p id="replayed-detail" class="check-detail">Replaying its examples</p>
+        </div>
+      </li>
+    </ol>
+    <a id="trust-details" class="trust-details" href="#identity-title">Full details<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+  </div>
+  <div id="share-panel" class="share-panel" popover aria-labelledby="share-title">
+    <p id="share-title" class="share-title">Share Holo Search</p>
+    <div id="share-image" class="share-image"></div>
+    <div class="share-link">
+      <code class="share-url">humuhumu33.github.io/holo-search</code>
+      <button id="share-copy" class="primary" type="button" autofocus><svg class="link" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M10 13.5a4.5 4.5 0 0 0 6.4.4l2.8-2.8a4.5 4.5 0 0 0-6.4-6.4l-1.3 1.3" /><path d="M14 10.5a4.5 4.5 0 0 0-6.4-.4l-2.8 2.8a4.5 4.5 0 0 0 6.4 6.4l1.3-1.3" /></svg><svg class="done" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg><span id="share-copy-label">Copy link</span></button>
+    </div>
+    <ul class="share-targets">
+      <li><a class="share-target" href="https://x.com/intent/post?text=Holo+Search%3A+Search+and+run+self-verifying+Prism+apps+by+their+address.&amp;url=https%3A%2F%2Fhumuhumu33.github.io%2Fholo-search%2F" target="_blank" rel="noopener noreferrer"><span class="share-glyph"><svg class="fill" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.3L5.3 21H2.2l7.2-8.3L1.8 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z" /></svg></span>X</a></li>
+      <li><a class="share-target" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fhumuhumu33.github.io%2Fholo-search%2F" target="_blank" rel="noopener noreferrer"><span class="share-glyph"><svg class="fill" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13M7.12 20.45H3.56V9h3.56zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0" /></svg></span>LinkedIn</a></li>
+      <li><a class="share-target" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fhumuhumu33.github.io%2Fholo-search%2F" target="_blank" rel="noopener noreferrer"><span class="share-glyph"><svg class="fill" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.04V9.41c0-3.02 1.8-4.7 4.54-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.5 0-1.96.93-1.96 1.89v2.26h3.32l-.53 3.5h-2.8V24C19.62 23.1 24 18.1 24 12.07" /></svg></span>Facebook</a></li>
+      <li><a class="share-target" href="mailto:?subject=Holo%20Search&amp;body=Holo%20Search%3A%20Search%20and%20run%20self-verifying%20Prism%20apps%20by%20their%20address.%0A%0Ahttps%3A%2F%2Fhumuhumu33.github.io%2Fholo-search%2F"><span class="share-glyph"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 6.5 8.5 6.5 8.5-6.5" /></svg></span>Email</a></li>
+      <li id="share-more-item" hidden><button id="share-more" class="share-target" type="button"><span class="share-glyph"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg></span>More</button></li>
+    </ul>
+  </div>
+</template>
       <a class="frame-fallback" href="https://humuhumu33.github.io/holo-search/"><span class="dot" aria-hidden="true"></span><span class="scheme">holo://</span>holo-search</a>
       <span slot="status" id="update" class="chip chip-warn" hidden><button id="reload" class="bare" type="button">Update available. Reload</button></span>
     </prism-frame>
@@ -1022,7 +1658,7 @@ ${o.documentElement.outerHTML}`,entry:t,files:[...n.keys()],notes:r}}function sn
       .holoview { display: block; width: 720px; max-width: calc(100vw - 32px); height: 480px; border: 0; border-radius: 12px; }`,document.head.append(i)}let s=document.createElement("iframe");s.title=n,s.setAttribute("sandbox","allow-scripts allow-forms"),s.className="holoview",s.srcdoc=t.srcdoc;let a=new MessageChannel;return a.port1.onmessage=({data:i})=>{if("height"in i){s.style.height=`${Math.min(Math.max(i.height,240),4e3)}px`;return}let c=200,u;try{let l=JSON.parse(i.body);if(i.method!=="POST"||l.version!==1)throw new Error("expected a POST of a version 1 intent");if(l.name!=="application.invoke")throw new Error(`no handler for the intent ${l.name}`);if(typeof l.payload!="string")throw new Error("application.invoke needs a string payload");let f=o(new TextEncoder().encode(l.payload));u=JSON.stringify({version:1,outputs:[new TextDecoder().decode(f)]}),r({ok:!0,request:l.payload,response:JSON.parse(u).outputs[0]})}catch(l){c=400,u=JSON.stringify({version:1,error:l.message}),r({ok:!1,error:l.message})}a.port1.postMessage({id:i.id,status:c,body:u})},s.addEventListener("load",()=>s.contentWindow.postMessage("holo-port","*",[a.port2]),{once:!0}),e.replaceChildren(s),s}var Ae="prism/image/1",no=/^[0-9a-f]{64}$/,Ee=e=>e&&no.test(e.digest)&&Number.isInteger(e.size);function Ge(e){if(e[0]!==123)return null;let t;try{t=JSON.parse(new TextDecoder().decode(e))}catch{return null}if(t?.schema!==Ae)return null;let n=Object.entries(t.roots??{});if(!(Ee(t.engine)&&Ee(t.types)&&Ee(t.source)&&n.length&&n.every(([,r])=>Ee(r)&&Number.isInteger(r.entry)&&r.entry>=0)))throw new Error(`a ${Ae} manifest must name an engine, types, a source and at least one root, each by sha256 and size`);return t}var Ke=e=>[{name:"engine",...e.engine},{name:"types",...e.types},...Object.entries(e.roots).map(([t,n])=>({name:t,...n}))];async function ze(e,t){let n=Ke(e),o=await Promise.all(n.map(r=>t(r.digest)));return Object.fromEntries(n.map((r,s)=>[r.name,{...r,...o[s]}]))}var Je=new Map,oo=e=>(Je.has(e.digest)||Je.set(e.digest,WebAssembly.compile(e.bytes)),Je.get(e.digest));async function Xe(e,t){let n=new Worker("engine-worker.js",{type:"module"}),o=0,r=new Map;n.onmessage=({data:a})=>{let{resolve:i,reject:c}=r.get(a.id);r.delete(a.id),a.ok?i(a.result):c(new Error(a.error))};let s=a=>new Promise((i,c)=>{let u=o++;r.set(u,{resolve:i,reject:c}),n.postMessage({id:u,...a})});try{let a=await s({op:"start",wasm:await oo(t.engine)}),i={};for(let l of Object.keys(e.roots)){let f=await s({op:"load",program:t[l].bytes});if(!f.ok)throw new Error(`${l}: ${f.error}`);if(f.program_id!==e.roots[l].digest)throw new Error(`${l}: the engine reads program id ${f.program_id.slice(0,12)}\u2026, the layer is ${e.roots[l].digest.slice(0,12)}\u2026`);i[l]=f.handle}return{types:JSON.parse(new TextDecoder().decode(t.types.bytes)),run:async(l,f)=>{if(!(l in i))throw new Error(`${l} is not a root of this image`);let p=await s({op:"call",handle:i[l],entry:e.roots[l].entry,args:f});if(!p.ok)throw new Error(p.error);if(p.outcome.kind!=="value")throw new Error(`${l}: ${p.outcome.kind}`);return{...p,program_id:e.roots[l].digest,timings_us:{eval:p.eval_ms*1e3}}},stop:()=>n.terminate(),engine_ms:a.ms}}catch(a){throw n.terminate(),a}}var Le="acceptanceVectors",dn="screen",so=["Heading","Field","Choice","Action","Output","Row","Stack"],m=e=>document.getElementById(e);var ao=e=>new Uint8Array(e.match(/../g)?.map(t=>parseInt(t,16))??[]),io=e=>new TextDecoder().decode(ao(e)),Qe=e=>JSON.stringify(io(e)).slice(1,-1).replaceAll("\\t"," \xB7 "),C=e=>e.slice(0,8),A=(e,t,n)=>{let o=document.createElement(e);return t&&(o.className=t),n!==void 0&&(o.textContent=n),o},Se=null,co=0,Ye=new Map,nt=e=>new Promise((t,n)=>{Se||(Se=new Worker("runtime-worker.js",{type:"module"}),Se.onmessage=({data:r})=>{let{resolve:s,reject:a}=Ye.get(r.id);Ye.delete(r.id),r.ok?s(r.result):a(new Error(r.error))});let o=co++;Ye.set(o,{resolve:t,reject:n}),Se.postMessage({id:o,...e})}),un=new URLSearchParams(location.search).get("runtime")??"runtime.wasm",lo=null,uo=()=>lo??=nt({op:"load",url:un}),Ce=new Map,pn=e=>t=>(Ce.has(t)||Ce.set(t,e(t).catch(n=>{throw Ce.delete(t),n})),Ce.get(t)),Oe=pn(oe);async function po(e,t=Oe){let n=await t(e),o=Ge(n.bytes);if(!o)throw new Error(`sha256:${C(e)}\u2026 is not a ${Ae} image`);let r=await ze(o,t);return{manifest:o,pulled:r,...await Xe(o,r)}}var ho=pn(async e=>{try{let t=await fetch(`registry/${e}`);if(t.ok){let n=new Uint8Array(await t.arrayBuffer());if(await ne(n)===e)return{digest:e,bytes:n,source:"this page"}}}catch{}return oe(e)}),ot={startImage:e=>po(e,ho)},hn=re.then(()=>ve(ot));hn.catch(()=>{});async function fo(e,t,n){let o=await nt({op:"run",model:e,root:t,args:n});if(!o.ok)throw new Error(o.error);if(o.outcome.kind!=="value")throw new Error(`${t}: ${o.outcome.kind}`);return o}function fn(e){let t=new Map(e.declarations.map(r=>[r.name,r])),n=(r,s)=>{switch(r.kind){case"string":case"bool":return r.value;case"bytes":return{hex:r.hex};case"list":return r.items.map(a=>n(a,s?.element));case"none":return null;case"some":case"ok":case"error":return{[r.kind]:n(r.value,s?.value??s?.[r.kind])};case"adt":{let a=t.get(s?.member?.name);if(a?.kind==="structure")return Object.fromEntries(a.fields.map((i,c)=>[i.name,n(r.fields[c],i.type)]));if(a?.kind==="inductive"){let i=a.constructors[r.constructor];return{constructor:i.name,fields:r.fields.map((c,u)=>n(c,i.fields[u]))}}return r}default:return/^[iu]\d+$|^nat$|^int$/.test(r.kind)?Number(r.value):r}},o=(r,s)=>{if(s?.kind==="list")return{kind:"list",items:r.map(i=>o(i,s.element))};if(s?.kind==="string")return{kind:"string",value:String(r)};let a=t.get(s?.member?.name);if(a?.kind==="structure")return{kind:"adt",constructor:0,fields:a.fields.map(i=>o(r[i.name],i.type))};throw new Error(`the page cannot build a value of type ${JSON.stringify(s)}`)};return{declared:t,decode:n,encode:o}}function mn(e){let t=[...e.values()].filter(c=>c.kind==="definition"&&c.production),n=(c,u)=>(e.get(c?.member?.name)?.fields??[]).find(l=>l.name===u),o=(c,u)=>c?.kind==="list"&&c.element?.member?.name===u,r=c=>t.find(c)?.name,s=t.find(c=>c.parameters.length===0&&n(c.result,Le)),a=n(s?.result,Le)?.type?.element,i={application:s?.name,screen:n(s?.result,dn)?.type?.member?.name==="Screen",behaviour:r(c=>c.parameters.length===1&&o(c.parameters[0].type,"FieldValue")&&o(c.result,"OutputValue")),entry:r(c=>c.parameters.length===1&&c.parameters[0].type?.kind==="bytes"&&c.result?.kind==="bytes"),vectorShape:(e.get(a?.member?.name)?.fields??[]).map(c=>c.name).join(","),roots:t.map(c=>c.name),theorems:[...e.values()].filter(c=>c.kind==="theorem").map(c=>c.name)};return i.contract=i.vectorShape==="given,expected"&&i.behaviour?"screen":i.vectorShape==="request,response"&&i.entry?"bytes":null,i}function mo(e){let t=e.get("Node");if(!t)return"it declares no Node type";let n=t.constructors.map(o=>o.name).filter(o=>!so.includes(o));return n.length?`it declares node kinds this page does not draw: ${n.join(", ")}`:null}var Ze=e=>e.map(t=>"value"in t?`${t.id}=${t.value}`:`${t.id}: ${t.text}`).join(" \xB7 ")||"(nothing)";async function go(e,t,{decode:n,encode:o,declared:r},s){let a=A("div","vectors"),i=0,c="",u=r.get(t.behaviour);for(let l of s){let f,p,d,h;try{if(t.contract==="screen"){let b=await e(t.behaviour,[o(l.given,u.parameters[0].type)]);c=b.program_id;let g=n(b.outcome.value,u.result);f=JSON.stringify(g)===JSON.stringify(l.expected),[p,d,h]=[Ze(l.given),Ze(l.expected),Ze(g)]}else{let b=await e(t.entry,[{kind:"bytes",hex:l.request.hex}]);c=b.program_id,f=b.outcome.value.hex===l.response.hex,[p,d,h]=[Qe(l.request.hex)||"(empty)",Qe(l.response.hex),Qe(b.outcome.value.hex)]}}catch(b){[f,p,d,h]=[!1,"(vector)","a value",b.message]}i+=!f,a.append(A("span",f?"":"bad-t",`${f?"\u2713":"\u2717"} ${p}`),A("span",f?"muted-t":"bad-t",f?`\u2192 ${d}`:`\u2192 ${h}, expected ${d}`))}return{grid:a,failed:i,programId:c}}var ie=class extends Error{};function gn(){m("steps").replaceChildren(),m("evidence").replaceChildren()}function N(e){let t=document.createElement("li");return t.innerHTML='<span class="muted-t">\u2026</span><span></span>',t.lastChild.textContent=e,m("steps").append(t),j(`${e}\u2026`,!1,m("echo").textContent),{done(n,o="ok-t",r="\u2713"){t.firstChild.textContent=r,t.firstChild.className=o,n&&(t.lastChild.textContent=`${e}: ${n}`)},fail(n){throw this.done(n,"bad-t","\u2717"),new ie(`${e}: ${n}`)}}}function J(e,t){let n=document.createElement("h3");n.textContent=e,m("evidence").append(n,t)}function j(e,t=!1,n=""){m("echo").textContent=n,m("cost").textContent="",m("result").textContent=e,m("result").className=`a note${t?" bad":""}`}function Y(e,t){m("status").textContent=e,m("dot").className=`dot ${t}`}var H=[],bo=re.then(e=>{H=e});async function rt(e){let t=e.trim();if(/^index:/i.test(t))return{a:Ut(t),list:[]};await re,await ve(ot);let n=Pe(),o=await Jt(t);if(o.kind==="blank")return{a:{kind:"blank"},list:[]};if(o.kind==="query"){let c=await Kt(n,o.text);return{a:{kind:"search"},list:c.map(u=>ye(u))}}let{algorithm:r,digest:s}=o,a=await Gt(n,o);if(a.kind==="found")return{a:{kind:"found",algorithm:r,digest:s},list:[ye(a.sha256)]};let i=a.kind==="ambiguous";return s.length===64?r==="blake3"?{a:{kind:"holo",blake3:s},list:[]}:{a:{kind:"digest",digest:s},list:[ye(s)]}:{a:{kind:"prefix",prefix:s,algorithm:r,ambiguous:i},list:[]}}var et=(e,t="sha256",n=!1)=>n?`${t}:${e} matches more than one known app; type more digits.`:`No known app starts with ${t}:${e}. A prefix matches only apps this page has seen; paste the full address to look it up in every source.`,bn=async()=>{let e=new URLSearchParams(location.search).get("r");if(!e)return!1;let{a:t,list:n}=await rt(e);return t.kind==="holo"?(it(t.blake3,!1),!0):n[0]?(Ne(n[0],!1),!0):!1};function wo(e){let t=document.createElement("dl");for(let n of e){let o=document.createElement("dt");o.textContent=n.source;let r=document.createElement("dd");r.textContent=`${n.result==="ok"?"\u2713":n.result==="mismatch"?"\u2717":"\u2013"} ${n.detail}${n.url?` \xB7 ${n.url}`:""}`,n.result==="mismatch"&&(r.className="bad-t"),t.append(o,r)}return t}async function yo(e,t){let n=N("Image manifest"),o=Ke(e),r=l=>`${(l/1024).toFixed(1)} KB`;n.done(`${e.name}: engine, types and ${o.length-2} program${o.length===3?"":"s"}, ${r(o.reduce((l,f)=>l+f.size,0))}; source ${r(e.source.size)} kept for rebuilding`),n=N("Layers pulled");let s;try{s=await ze(e,Oe)}catch(l){return t(n,l.message),null}let a=[...new Set(Object.values(s).map(l=>l.source))].join(", ");n.done(`${o.length} layers, each matching its sha256, from ${a}`);let i=document.createElement("dl");for(let l of Object.values(s))i.append(A("dt","",l.name),A("dd","",`sha256:${l.digest} \xB7 ${r(l.size)} \xB7 ${l.source}`));J("Layers",i),n=N("Container started");let c;try{c=await Xe(e,s)}catch(l){return t(n,l.message),null}n.done(`its own Web Worker running engine sha256:${C(e.engine.digest)}, started in ${Math.round(c.engine_ms)} ms; every program passed the engine's static checks and its id equals its layer digest`);let u=fn(c.types);return{types:u,role:mn(u.declared),call:c.run,stop:c.stop,compiled:()=>"read from the image's application program; nothing was compiled here",identities:[["source",`sha256:${e.source.digest}`],["source_id",e.build.source_id],["semantic_id",e.build.semantic_id],["engine",`sha256:${e.engine.digest}`]]}}function vo(e,t){let n=A("div","rebuild"),o=A("button","rebuild-go","Rebuild from source");o.type="button";let r=A("ol","rebuild-out");n.append(A("p","muted-t",`Lowers source sha256:${C(e.source.digest)}\u2026 with compiler sha256:${C(e.build.compiler)}\u2026 in this tab and compares every program with the image's.`),o,r);let s=(a,i)=>r.append(A("li",a===!0?"ok-t":a===!1?"bad-t":"muted-t",`${a===!0?"\u2713":a===!1?"\u2717":"\u2013"} ${i}`));return o.onclick=async()=>{o.disabled=!0,r.replaceChildren();let a=new Worker("runtime-worker.js",{type:"module"}),i=0,c=new Map;a.onmessage=({data:l})=>{let{resolve:f,reject:p}=c.get(l.id);c.delete(l.id),l.ok?f(l.result):p(new Error(l.error))};let u=l=>new Promise((f,p)=>{let d=i++;c.set(d,{resolve:f,reject:p}),a.postMessage({id:d,...l})});try{let l=performance.now(),[f,p]=await Promise.all([Oe(e.build.compiler),Oe(e.source.digest)]);s(!0,`compiler (${(f.bytes.length/1e6).toFixed(1)} MB) and source (${(p.bytes.length/1024).toFixed(1)} KB) fetched, each matching its sha256`),await u({op:"load",bytes:f.bytes});let d=await u({op:"build",model:new TextDecoder().decode(p.bytes)});if(!d.ok)throw new Error(`the source does not build: ${d.error}`);let h=Object.fromEntries(d.roots.map(w=>[w.name,w])),b=Object.keys(h).length===Object.keys(e.roots).length;for(let[w,v]of Object.entries(e.roots)){let x=h[w]?.program_id===v.digest&&h[w]?.entry===v.entry;b&&=x,s(x,`${w}: ${x?`program sha256:${C(v.digest)}\u2026 rebuilt identically`:`the image has ${C(v.digest)}\u2026, the source builds ${C(h[w]?.program_id??"nothing")}\u2026`}`)}for(let w of Object.keys(h).filter(v=>!(v in e.roots)))b=!1,s(!1,`${w}: the source declares this root; the image does not carry it`);let g=d.source_id===e.build.source_id&&d.semantic_id===e.build.semantic_id;s(g,`source_id and semantic_id ${g?"match the image's":"differ from the image's"}`);let k=Math.round(performance.now()-l);b&&g?(t.done(`identical: every program and identity rebuilt from the source in this tab (${k} ms)`),m("app-status").textContent+=" \xB7 rebuilt from source"):(t.done("the image is NOT what its source builds","bad-t","\u2717"),m("app-status").textContent+=" \xB7 NOT what its source builds")}catch(l){s(!1,l.message),t.done(`could not rebuild: ${l.message}`,"bad-t","\u2717")}finally{a.terminate(),o.disabled=!1}},n}async function $o(e,t){let n=N("Runtime ready"),o=await uo();n.done(`${un}, ${(o.wasm_bytes/1e6).toFixed(1)} MB`),n=N("Model checked");let r=await nt({op:"module",model:e});if(!r.ok)return t(n,r.error),null;n.done("LexLean's front end read its declarations");let s=fn(r.module),a=[];return{types:s,role:mn(s.declared),call:async(i,c)=>{let u=await fo(e,i,c);return a=[["source_id",u.source_id],["semantic_id",u.semantic_id]],u},stop:()=>{},compiled:i=>{let c=i.timings_us;return i.cached?"already compiled in this tab":`compiled in ${Math.round(i.wall_ms)} ms (lock ${Math.round(c.lock/1e3)}, check ${Math.round(c.check/1e3)}, lower ${Math.round(c.lower/1e3)} ms)`},get identities(){return a}}}var ce=null,st=()=>{ce?.stop?.(),ce=null},G=0;async function Ne(e,t=!0){if(e.blake3)return it(e.blake3,t);let n=++G;le(),gn(),st(),m("q").disabled=!0,m("go").hidden=!0,m("proof-open").hidden=!1,Y(`Opening ${e.module} \xB7 ${C(e.sha256)}`,"busy"),j("",!1,`sha256:${C(e.sha256)}`);let o=performance.now();try{let r=e.kind==="image"?oe(e.sha256):Mt(e.sha256).catch(S=>S.kind==="missing"?oe(e.sha256):Promise.reject(S)),{got:s,refused:a}=await wn(e.kind==="image"?"Image":"App",r),{bytes:i}=s,c={address:!1,compiled:!1,passed:0,total:0},u=(S,T)=>S.done(T,"bad-t","\u2717"),l=N("Bytes match the digest"),f=await ne(i);if(c.address=f===e.sha256,c.address?l.done(`sha256 ${f.slice(0,16)}\u2026${a.length?`; refused ${a.map(S=>S.source).join(", ")}, whose bytes did not match`:""}`):u(l,`the digest is ${C(e.sha256)}\u2026, these bytes are ${C(f)}\u2026`),c.address&&Ct(i))return await yn(s,n,o,t);let p=null,d=null;if(c.address){try{p=Ge(i)}catch(S){u(N("Image manifest"),S.message)}d=p?await yo(p,u):await $o(new TextDecoder().decode(i),u)}let h,b,g={theorems:[]},k,w=[],v="",x="";if(d){if({types:k,role:g}=d,l=N("Application record"),!g.application)u(l,`it declares no application record (a zero-argument root carrying ${Le}); its roots are ${g.roots.join(", ")||"none"}`);else try{h=await d.call(g.application,[])}catch(S){u(l,S.message)}if(h)if(c.compiled=!0,l.done(d.compiled(h)),b=k.decode(h.outcome.value,k.declared.get(g.application).result),l=N("Acceptance vectors"),w=b[Le]??[],!g.contract)u(l,`this page runs typed vectors through a FieldValue \u2192 OutputValue root, or byte vectors through a Bytes root; this app has neither (roots: ${g.roots.join(", ")})`);else if(!w.length)u(l,"none declared, so nothing vouches for the behaviour");else{let S=performance.now(),T=await go(d.call,g,k,w);x=T.programId,v=g.contract==="screen"?g.behaviour:g.entry,J(`Acceptance vectors, run through ${v}`,T.grid),c.total=w.length,c.passed=w.length-T.failed,T.failed?u(l,`${T.failed} of ${w.length} fail`):l.done(`${w.length}/${w.length} pass in ${Math.round(performance.now()-S)} ms`)}}try{await at(c)}catch(S){throw d?.stop(),S}let O=g.theorems.length?`it states ${g.theorems.length} theorem${g.theorems.length===1?"":"s"}; `:"";if(N("Proof for this digest").done(`${O}no proof is published for this digest yet, so Lean has not vouched for them here`,"muted-t","\u2013"),p){let S=N("Rebuilt from source");S.done("not run; optional, from this sheet's Rebuild button","muted-t","\u2013"),J("Rebuild from source",vo(p,S))}let $=g.contract!=="screen"?"it declares no Screen: it uses the older contract (byte vectors through a Bytes entry root)":g.screen?mo(k.declared):"its application record has no Screen",L=$?null:b[dn];N("Screen").done($?`not drawn, because ${$}`:`\u201C${L.title}\u201D, drawn from the app's declaration`,$?"muted-t":"ok-t",$?"\u2013":"\u2713");let I=document.createElement("dl");for(let[S,T]of[["digest",`sha256:${f}`],...d.identities,[v,x],[g.application,h.program_id]])I.append(A("dt","",S),A("dd","",T));J("Identities",I),g.theorems.length&&J("Theorems stated",A("p","muted-t",g.theorems.join(" \xB7 "))),N("Ready").done(`${((performance.now()-o)/1e3).toFixed(2)} s from digest to app`);let _=L?.title??b.name??p?.name??e.module;if(H=await Fe(f,e.unnamed?_:e.module,i.length,void 0,p?"image":void 0),n!==G)return d.stop();ko({sha:f,kind:p?"image":"model",call:d.call,stop:d.stop,role:g,types:k,screen:L,blocked:$,title:_,vectors:w.length,url:s.url},t)}catch(r){if(n!==G)return;r instanceof ie||N("Unexpected failure").done(r.message,"bad-t","\u2717"),Ie(),Y(`Refused \xB7 ${e.module} \xB7 ${C(e.sha256)}`,"bad"),m("q").value=`sha256:${C(e.sha256)}`,j(`Refused. ${r.message}`,!0,`sha256:${C(e.sha256)}`),m("q").focus()}}async function at(e){let t=N("Verdict"),n;try{await re,await ve(ot),n=await qt(e)}catch(o){t.fail(`Holo Search could not load its own verified gate (${o.message}), so nothing opens`)}n.ready||t.fail(`${n.checks} = Refused (${n.reason}): ${zt[n.reason]??n.reason}. Decided by ${n.by}`),t.done(`${n.checks} = Ready, decided by ${n.by}`)}async function wn(e,t){let n=N(`${e} located`),o=await t.catch(s=>s),r=(o.attempts??[]).filter(s=>s.result==="mismatch");if(o.attempts&&J("Sources tried, in the order sources.json declares",wo(o.attempts)),o instanceof te&&(o.kind==="missing"&&n.fail(o.message),n.done(`${r.length} source${r.length===1?"":"s"} served bytes`),N("Bytes match the address").done(r.map(s=>`${s.source} ${s.detail}`).join("; "),"bad-t","\u2717"),await at({address:!1,compiled:!1,passed:0,total:0})),o instanceof Error)throw o;return n.done(`${o.bytes.length.toLocaleString()} bytes from ${o.source}${o.kind==="ipfs"?` as ${o.cid}`:""}`),{got:o,refused:r}}async function it(e,t=!0){let n=++G;le(),gn(),st(),m("proof-open").hidden=!1,Y(`Opening holo \xB7 blake3:${C(e)}`,"busy"),j("",!1,`blake3:${C(e)}`);let o=performance.now();try{let{got:r,refused:s}=await wn("Holo",jt(e));N("Bytes match the fingerprint").done(`BLAKE3 of the body ${e.slice(0,16)}\u2026${s.length?`; refused ${s.map(a=>a.source).join(", ")}`:""}`),await yn(r,n,o,t)}catch(r){if(n!==G)return;r instanceof ie||N("Unexpected failure").done(r.message,"bad-t","\u2717"),Ie(),Y(`Refused \xB7 holo \xB7 blake3:${C(e)}`,"bad"),j(`Refused. ${r.message}`,!0,`blake3:${C(e)}`)}}async function yn(e,t,n,o){let r=d=>{let h=document.createElement("dl");for(let[b,g]of d)h.append(A("dt","",b),A("dd","",g));return h},s=await Lt(e.bytes,{step:N,section:J,rows:r});await at(s.evidence);let a=N("View"),i;try{i=rn(s.view.content)}catch(d){a.fail(`its HOLOVIEW bundle does not open: ${d.message}`)}a.done(`HOLOVIEW ${i.entry} with ${i.files.length-1} more file${i.files.length===2?"":"s"}, in a sandboxed frame with no network; its intents go to the verified guest${i.notes.length?`; ${i.notes.join("; ")}`:""}`),N("Ready").done(`${((performance.now()-n)/1e3).toFixed(2)} s from address to verified holo`);let c=await ne(e.bytes);if(H=await Fe(c,`${s.name} (holo)`,e.bytes.length,s.identities.archiveFingerprint),t!==G)return;let u=s.identities.archiveFingerprint,l=ct(`?r=blake3:${u}`);o?history.pushState({},"",l):history.replaceState({},"",l),ce={holo:s},document.title=`${s.name} \xB7 Holo Search`,m("q2").value=`blake3:${C(u)}`,m("model-link").href=e.url;let f=`${s.name} \xB7 holo verified here \xB7 ${s.vectors}/${s.vectors} acceptance vectors \xB7 its own view, sandboxed \xB7 blake3:${C(u)} \xB7 sha256:${C(c)}`;m("app-status").textContent=f,$n(null);let p=0;sn(m("canvas"),i,{title:s.name,dispatch:s.dispatch,onIntent:d=>{p++,m("app-status").textContent=`${f} \xB7 ${p} intent${p===1?"":"s"} answered${d.ok?"":`, last refused: ${d.error}`}`}}),m("app-page").hidden=!1}var an=["runtime","sources"].filter(e=>new URLSearchParams(location.search).has(e)).map(e=>`${e}=${new URLSearchParams(location.search).get(e)}`).join("&"),ct=(e="")=>an?`${e}${e?"&":"?"}${an}`:e;function ko(e,t){ce=e;let n=ct(`?r=${e.sha}`);t?history.pushState({r:e.sha},"",n):history.replaceState({r:e.sha},"",n),document.title=`${e.title} \xB7 Holo Search`,m("q2").value=`sha256:${C(e.sha)}`,m("model-link").href=e.url,m("app-status").textContent=`${e.title} \xB7 verified here \xB7 ${e.vectors}/${e.vectors} acceptance vectors${e.screen?"":" \xB7 no screen declared"} \xB7 sha256:${C(e.sha)}`,$n(e.screen?.theme),e.screen?xo(e):Eo(e),m("app-page").hidden=!1,m("canvas").querySelector("input, button")?.focus()}function Ie(){m("app-page").hidden=!0,m("q").disabled=!1,m("go").hidden=!1,document.title="Holo Search"}function vn(e=!0){G++,st(),e&&history.pushState({},"",location.pathname+ct()),Ie(),m("q").value="",j(""),lt(),m("q").focus()}function $n(e){let t=m("app-page");if(t.removeAttribute("style"),!e)return;let n=s=>/^#[0-9a-f]{6}$/i.test(s??"")?s:null,o=(s,a,i)=>Number.isInteger(s)&&s>=a&&s<=i?`${s}px`:null,r=(s,a)=>a&&t.style.setProperty(s,a);for(let[s,a]of[["--bg","background"],["--sheet","surface"],["--fg","foreground"],["--muted","muted"],["--line","line"],["--accent","accent"],["--ok","positive"],["--bad","negative"]])r(s,n(e[a]));["--t-xs","--t-s","--t-m","--t-l","--t-xl","--t-xxl"].forEach((s,a)=>r(s,o(e.typeScale?.[a],8,160))),["--s-1","--s-2","--s-3","--s-4","--s-5","--s-6","--s-7"].forEach((s,a)=>r(s,o(e.spaceScale?.[a],1,160))),r("--card-w",o(e.width,233,987)),r("--control",o(e.control,34,89))}function xo(e){let t=A("form","appcard");t.noValidate=!0;let n=[],o=new Map,r=0,s=!1,a=({constructor:f,fields:[p]})=>{switch(f){case"Heading":{let d=A(s?"h2":"h1","",p);return s=!0,d}case"Field":{let d=A("div","field"),h=A("input");h.id=`app-field-${r++}`,h.autocomplete="off",h.spellcheck=!1,h.placeholder=p.placeholder,h.inputMode=p.kind.constructor==="Integer"?"numeric":"text";let b=A("label","",p.label);return b.htmlFor=h.id,d.append(b,h),n.push({id:p.id,read:()=>h.value,filled:()=>h.value!==""}),d}case"Choice":{let d=A("div","field"),h=A("span","legend",p.label);h.id=`app-legend-${r++}`;let b=A("div","options");b.setAttribute("role","radiogroup"),b.setAttribute("aria-labelledby",h.id),b.style.gridTemplateColumns=`repeat(${Math.max(p.options.length,1)}, minmax(0, 1fr))`;for(let g of p.options){let k=A("button","",g.symbol||g.label);k.type="button",k.title=g.label,k.setAttribute("role","radio"),k.setAttribute("aria-label",g.label),k.setAttribute("aria-checked",String(g.id===p.initial)),k.dataset.option=g.id,k.onclick=()=>{for(let w of b.children)w.setAttribute("aria-checked",String(w===k));n.every(w=>w.filled())&&l()},b.append(k)}return d.append(h,b),n.push({id:p.id,read:()=>b.querySelector('[aria-checked="true"]')?.dataset.option??"",filled:()=>!0}),d}case"Action":{let d=A("button","primary",p);return d.type="submit",d}case"Output":{let d=A("output");return d.setAttribute("aria-live","polite"),o.set(p,d),d}case"Row":case"Stack":{let d=A("div",f.toLowerCase());return d.append(...p.map(a)),d}default:throw new Error(`no drawing for node kind ${f}`)}};t.append(...e.screen.body.map(a));let i=A("div","meta");t.append(i),m("canvas").replaceChildren(t);let c=e.types.declared.get(e.role.behaviour),u=0,l=async()=>{let f=++u,p=n.map(b=>({id:b.id,value:b.read()})),d=await e.call(e.role.behaviour,[e.types.encode(p,c.parameters[0].type)]);if(f!==u||e!==ce)return;for(let b of e.types.decode(d.outcome.value,c.result)){let g=o.get(b.id);if(!g){console.warn(`respond wrote an output the screen does not declare: ${b.id}`);continue}g.textContent=b.text,g.className=`tone-${b.tone.constructor.toLowerCase()}`,g.offsetWidth,g.classList.add("fresh")}let h=d.timings_us.eval;i.textContent=`${e.role.behaviour} \xB7 ${d.outcome.steps.toLocaleString()} calculus steps \xB7 ${h<100?"under 0.1":(h/1e3).toFixed(1)} ms`};t.onsubmit=f=>{f.preventDefault(),l().catch(p=>{i.textContent=`respond failed: ${p.message}`})}}function Eo(e){Qt(m("canvas"),e,(t,n,o)=>e.call(n,o)).catch(t=>{let n=A("article","appcard plain");n.append(A("h1","",e.title),A("p","",`This model passed the gate, but ${e.blocked}, and its universal page failed: ${t.message}`)),m("canvas").replaceChildren(n)})}var D=[],Q=0;function le(){m("suggest").hidden=!0,m("q").setAttribute("aria-expanded","false"),D=[]}var cn=0;async function kn(){let e=++cn,t=m("q").value,n=m("suggest"),{a:o,list:r}=await rt(t);if(e===cn){if(D=r,Q=0,n.replaceChildren(),!D.length){let s=document.createElement("li");s.className="none",s.textContent={prefix:()=>et(o.prefix,o.algorithm,o.ambiguous),holo:()=>`Press Enter to look up the holo with fingerprint blake3:${C(o.blake3)}\u2026 in every source`,index:()=>`Press Enter to add the index at sha256:${C(o.digest)}\u2026 to search`,invalid:()=>o.reason}[o.kind]?.()??`No app named \u201C${t.trim()}\u201D in the indices this page knows`,n.append(s)}D.forEach((s,a)=>{let i=document.createElement("li");i.setAttribute("role","option"),i.setAttribute("aria-selected",String(a===Q)),i.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 4 5v6c0 5.25 3.4 10.15 8 11 4.6-.85 8-5.75 8-11V5l-8-3Z"/></svg><span></span><span class="addr"></span>',i.children[1].textContent=s.module,i.children[2].textContent=`sha256:${C(s.sha256)} \xB7 ${(s.bytes/1024).toFixed(1)} KB`,i.onmousedown=c=>{c.preventDefault(),Ne(s)},n.append(i)}),n.hidden=!1,m("q").setAttribute("aria-expanded","true")}}function ln(e){D.length&&(Q=(Q+e+D.length)%D.length,[...m("suggest").children].forEach((t,n)=>t.setAttribute("aria-selected",String(n===Q))))}function lt(){let e=H[0];Y(`${H.length} app${H.length===1?"":"s"} known here \xB7 any sha256 resolves through ${tt} source${tt===1?"":"s"} \xB7 verified gate ready`,"ok"),e&&(m("try").textContent=`Try ${e.module} \xB7 ${C(e.sha256)}`,m("try").hidden=m("try-sep").hidden=!1)}async function xn(e,t){let{a:n,list:o}=await rt(e);if(n.kind==="prefix"&&n.ambiguous)return j(et(n.prefix,n.algorithm,!0),!0);let r=t&&!m("suggest").hidden&&D[Q]||o[0];if(r)return Ne(r);if(n.kind==="holo")return it(n.blake3);if(le(),Ie(),m("q").value=e,n.kind==="index"){j(`Adding the index at sha256:${C(n.digest)}\u2026`);try{let s=await Rt(n.digest);return H=Pe(),lt(),j(`Added ${s.count} app${s.count===1?"":"s"} to search from the index at sha256:${C(n.digest)}\u2026, verified, from ${s.source}.`)}catch(s){return j(`Index not added: ${s.message}.`,!0)}}j({prefix:()=>et(n.prefix,n.algorithm,n.ambiguous),invalid:()=>n.reason}[n.kind]?.()??`No app named \u201C${e.trim()}\u201D in the indices this page knows. Paste its digest to look it up in every source.`,!0)}m("bar").addEventListener("submit",e=>{e.preventDefault(),xn(m("q").value,!0)});m("bar2").addEventListener("submit",e=>{e.preventDefault(),xn(m("q2").value,!1)});m("q2").addEventListener("focus",()=>m("q2").select());m("q").addEventListener("input",kn);m("q").addEventListener("blur",()=>setTimeout(le,0));m("q").addEventListener("keydown",e=>{e.key==="ArrowDown"&&(e.preventDefault(),m("suggest").hidden?kn():ln(1)),e.key==="ArrowUp"&&(e.preventDefault(),ln(-1)),e.key==="Escape"&&le()});m("home-link").addEventListener("click",e=>{e.preventDefault(),vn()});m("try").addEventListener("click",()=>{H[0]&&Ne(H[0])});addEventListener("popstate",async()=>{await bn()||vn(!1)});m("share").addEventListener("click",async()=>{let e=new URLSearchParams(location.search).get("r");if(!e)return;let t=`${location.origin}${location.pathname}?r=${e}`,n=m("app-status").textContent;try{navigator.share?await navigator.share({title:document.title,url:t}):(await navigator.clipboard.writeText(t),m("app-status").textContent="Link copied: it opens this app, verified, in any browser",setTimeout(()=>{m("app-status").textContent.startsWith("Link copied")&&(m("app-status").textContent=n)},2400))}catch{}});var ae=m("proof");for(let e of["proof-open","proof-open-2","shield"])m(e).addEventListener("click",()=>ae.showModal());m("proof-close").onclick=()=>ae.close();ae.addEventListener("click",e=>{e.target===ae&&ae.close()});var tt=0;Promise.all([bo,hn,be]).then(async([,,e])=>{tt=e.sources.length,!await bn()&&(lt(),m("q").focus())}).catch(e=>Y(`Holo Search could not start its own verified gate: ${e.message}`,"bad"));
 </script>
     <script type="module" id="holo-frame">
-// From UOR-Foundation/template@f4bdc301eae152cae72ec7d3dd701e94e2c0b44a site/app.mjs
+// From UOR-Foundation/template@16c63c63f9e7ee033150170a802ccd46983fa885 site/app.mjs
 // (sha256 59f40ba9bd479cdb451ebd3b2aeda0bbb094d80d5c26f52cd5286aedf6ce075e), cut unchanged by
 // bootstrap/holo-page.mjs: the frame loader and its helpers. Then Holo Search's wiring.
 const $ = (id) => document.getElementById(id);

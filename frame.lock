@@ -2,17 +2,17 @@
   "spec": "prism/frame-lock/1",
   "source": {
     "repository": "UOR-Foundation/template",
-    "commit": "f4bdc301eae152cae72ec7d3dd701e94e2c0b44a",
-    "raw": "https://raw.githubusercontent.com/UOR-Foundation/template/f4bdc301eae152cae72ec7d3dd701e94e2c0b44a/"
+    "commit": "16c63c63f9e7ee033150170a802ccd46983fa885",
+    "raw": "https://raw.githubusercontent.com/UOR-Foundation/template/16c63c63f9e7ee033150170a802ccd46983fa885/"
   },
   "files": [
     {
       "path": "bootstrap/frame-sync.mjs",
-      "sha256": "c25eee1a9e1a0e9573ddc4d0a32b2ab4958cb6a3f71fd35ee79a6b9816335f21"
+      "sha256": "0c72dce47beb0faea9c24b535e3ec6d6013a9fc8de21f92b61c8e00ec277280a"
     },
     {
       "path": "bootstrap/icons.py",
-      "sha256": "25c66c70f1392bf1e40b9b73fd99b547984611cfa39ad1ae301b91377883d931"
+      "sha256": "d2ecf0fa7a8e6b0e6f5c6fd32aebf41e6e3c6aeb8f16fc20492bd1b7409626df"
     },
     {
       "path": "bootstrap/og.py",
@@ -20,11 +20,15 @@
     },
     {
       "path": "bootstrap/page.mjs",
-      "sha256": "edd42e028e5e014264b20868e371be3ee087475df3c8f0b6b3275a868d4c7c8c"
+      "sha256": "574241085003b0fa4c213ef9582254c8564285ae301b90aa531a1b54c32ee104"
     },
     {
       "path": "bootstrap/precache.mjs",
       "sha256": "d1af0e811ed68ea3695144e9c0abddd3c9bf24007b9fde8c5b12f91ec225a388"
+    },
+    {
+      "path": "bootstrap/register.mjs",
+      "sha256": "c83e32d67f7bf8964498527c44a35c4da6f5428e358ae367dc651f0a6c601cf7"
     },
     {
       "path": "bootstrap/screens.mjs",
@@ -44,11 +48,11 @@
     },
     {
       "path": "site/page.template.html",
-      "sha256": "eee8ed7c17bd88eedc81fe452629b593d5ae1626a4e905a808e670aa8172fc76"
+      "sha256": "5c04f4d913d27a15097b1ef90fd099384ce2fdc6f94550f2903c69a505bc6b89"
     },
     {
       "path": "site/prism-page.css",
-      "sha256": "786b98c01b17a9e0b8e989da164480dab6e3867aca9d9db74a28f45d821a8fe8"
+      "sha256": "1656edaf70a860245c1bc204bc1ded57b91e12b375dc22422397df7603f046b7"
     },
     {
       "path": "site/sw.js",

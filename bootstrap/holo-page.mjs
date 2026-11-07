@@ -149,8 +149,57 @@ for (const [key, value] of Object.entries(optional)) {
   if (value) frameFill[key] = escape(value);
   else element = element.replace(new RegExp(` [a-z-]+="\\{\\{${key}\\}\\}"`, "g"), "");
 }
-const header = fill(element, frameFill).trimEnd();
+let header = fill(element, frameFill).trimEnd();
 if (/\{\{[A-Z_]+\}\}/.test(header)) fail(`the frame element has an unfilled value: ${header.match(/\{\{[A-Z_]+\}\}/)[0]}`);
+
+// The frame's first paint, written into the page as bootstrap/page.mjs writes
+// it for every app: the live frame, checked against its SHA-256, asked for
+// its shell (a declarative shadow root with its own styles and markup), so
+// the real bar paints with the page's first frame and a hop to Holo Search
+// never shows the stand-in. The stars come from the Prism index on the Prism
+// registry, else from GitHub. With no network, the stand-in stays until the frame loads.
+const hex = (bytes) => createHash("sha256").update(bytes).digest("hex");
+async function registryStars() {
+  try {
+    const registry = new URL("https://registry.uor.foundation/index/current.json");
+    const named = await (await fetch(registry, { cache: "no-store", signal: AbortSignal.timeout(15e3) })).json();
+    const index = await (await fetch(new URL(named.path, registry))).json();
+    const app = (index.apps ?? []).find((entry) => (entry.repository ?? "").toLowerCase() === String(meta.repository).toLowerCase());
+    if (Number.isInteger(app?.stars)) return app.stars;
+  } catch {
+    // Not listed there: ask GitHub.
+  }
+  try {
+    const repo = String(meta.repository).replace(/^https:\/\/github\.com\//, "");
+    const response = await fetch(`https://api.github.com/repos/${repo}`, { headers: { accept: "application/vnd.github+json" } });
+    const count = response.ok ? (await response.json()).stargazers_count : null;
+    return Number.isInteger(count) ? count : null;
+  } catch {
+    return null;
+  }
+}
+async function frameShell(stars) {
+  try {
+    const pointer = await (await fetch(new URL("current.json", frameHost), { cache: "no-store" })).json();
+    if (!/^[0-9a-f]{64}$/.test(pointer.sha256 ?? "")) throw new Error("the frame pointer names no sha256");
+    const bytes = Buffer.from(await (await fetch(new URL(pointer.module, frameHost))).arrayBuffer());
+    if (hex(bytes) !== pointer.sha256) throw new Error(`the frame is ${hex(bytes)}, its pointer says ${pointer.sha256}`);
+    const frame = await import(`data:text/javascript;base64,${bytes.toString("base64")}`);
+    if (typeof frame.shell !== "function") throw new Error("this frame has no shell");
+    const attributes = { name: meta.name, address: frameFill.HOLO_NAME, live: live.href, repo: meta.repository, home: holoSearch.href, purpose: meta.purpose, card: new URL("og.png", live).href, identity: "#identity-title", stars: stars === null ? null : String(stars) };
+    return { ...frame.shell(attributes, live.href), sha256: pointer.sha256 };
+  } catch (error) {
+    console.warn(`holo-page: no frame shell (${error.message}); the stand-in shows until the frame loads`);
+    return null;
+  }
+}
+const stars = await registryStars();
+const firstPaint = await frameShell(stars);
+{
+  const close = header.indexOf(">") + 1;
+  const more = `${stars === null ? "" : ` stars="${stars}"`}${firstPaint ? ` data-shell="${firstPaint.sha256}"` : ""}`;
+  header = `${header.slice(0, close - 1)}${more}>${firstPaint?.html ?? ""}${header.slice(close)}`;
+}
 
 // The styles, inlined as page.mjs inlines them; the fonts go in as data, so
 // the page stays one file.
