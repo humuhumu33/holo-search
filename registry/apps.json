@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Luhn check",
+    "address": "luhn-check",
+    "live": "https://humuhumu33.github.io/prism-luhn/",
+    "repository": "https://github.com/humuhumu33/prism-luhn"
+  },
+  {
+    "name": "Leap year",
+    "address": "leap-year",
+    "live": "https://humuhumu33.github.io/prism-leap-year/",
+    "repository": "https://github.com/humuhumu33/prism-leap-year"
+  },
+  {
+    "name": "Legal chess",
+    "address": "legal-chess",
+    "live": "https://humuhumu33.github.io/prism-legal-chess/",
+    "repository": "https://github.com/humuhumu33/prism-legal-chess"
+  },
+  {
+    "name": "Holo Search",
+    "address": "holo-search",
+    "live": "https://humuhumu33.github.io/holo-search/",
+    "repository": "https://github.com/humuhumu33/holo-search"
+  },
+  {
+    "name": "Template contract",
+    "address": "template-contract",
+    "live": "https://uor-foundation.github.io/template/",
+    "repository": "https://github.com/UOR-Foundation/template"
+  }
+]
