@@ -32,7 +32,11 @@ Docker network:
 
   An OCI artifact (`application/vnd.prism.address.v1+json`). Anyone holding
   the address resolves it to the card, fetches the bytes from a location and
-  checks both digests. AI artifacts in the hub's registry are listed by
+  checks both digests. The gateway also resolves an address directly:
+  `GET /prism/by/<blake3 fingerprint or sha256>[.holo]` answers with a
+  redirect to the bytes on GitHub (they never pass through the registry),
+  and `GET /index/apps.json` lists every indexed app with both addresses,
+  in the shape Holo Search searches. AI artifacts in the hub's registry are listed by
   repository, tag and manifest digest. It re-checks every app every ten
   minutes, a registration at once, and discovers and lists artifacts hourly.
 

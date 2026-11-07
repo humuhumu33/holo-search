@@ -31,6 +31,7 @@
 // Plain Node, no dependencies.
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -97,7 +98,21 @@ const tag = {
   loader: "<script>",
   engine: '<script type="module" data-holo="engine">',
 };
-const runtimeHtml = RUNTIME.map((key) => `    ${tag[key]}${before[key].body}</script>`).join("\n");
+// The registry copy, with this repository's sources.json in it: where the
+// page looks for an app by its address, and the indices it searches, the
+// canonical Prism index first. Every other file in the copy stays byte for
+// byte, and so does every other runtime block.
+const sourcesText = await read("sources.json");
+const sourcesJson = JSON.parse(sourcesText);
+if (sourcesJson.format !== "holo-search/sources/1" || !Array.isArray(sourcesJson.sources) || !Array.isArray(sourcesJson.indices)) fail("sources.json is not a holo-search/sources/1 file");
+const copy = JSON.parse(before.files.body);
+if (!copy["sources.json"]) fail("the registry copy carries no sources.json");
+const embedded = { ...copy, "sources.json": { ...copy["sources.json"], gz: true, data: gzipSync(Buffer.from(sourcesText), { level: 9 }).toString("base64") } };
+for (const name of Object.keys(copy)) {
+  if (name !== "sources.json" && JSON.stringify(embedded[name]) !== JSON.stringify(copy[name])) fail(`the registry copy's ${name} changed`);
+}
+const body = { ...Object.fromEntries(RUNTIME.map((key) => [key, before[key].body])), files: JSON.stringify(embedded) };
+const runtimeHtml = RUNTIME.map((key) => `    ${tag[key]}${body[key]}</script>`).join("\n");
 
 // Holo Search's own identity, from this repository: its model is
 // src/HoloSearch.lex.tex, and the runtime runs that model's image, which the
@@ -281,11 +296,13 @@ let html = fill(await read("site/holo-search.template.html"), {
 const left = html.match(/\{\{[A-Z_]+\}\}/g);
 if (left) fail(`unfilled: ${left.join(", ")}`);
 
-// The runtime is the same bytes it was.
+// The runtime is the same bytes it was, but for the registry copy's sources.json.
 const after = runtime(html);
 for (const key of RUNTIME) {
-  if (sha(after[key].body) !== sha(before[key].body)) fail(`the runtime's ${key} changed`);
-  console.log(`holo-page: runtime ${key} unchanged, sha256 ${sha(before[key].body)}`);
+  if (sha(after[key].body) !== sha(body[key])) fail(`the runtime's ${key} is not what was written`);
+  if (key === "files") console.log(`holo-page: registry copy unchanged but for sources.json (this repository's), sha256 ${sha(body.files)}`);
+  else if (sha(body[key]) !== sha(before[key].body)) fail(`the runtime's ${key} changed`);
+  else console.log(`holo-page: runtime ${key} unchanged, sha256 ${sha(before[key].body)}`);
 }
 
 const ogFrame = await read("site/og.png", null);
