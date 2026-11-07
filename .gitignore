@@ -27,3 +27,7 @@ criterion/
 # LexLean and Lean build state.
 /.lexlean/
 /.lake/
+
+# The Prism registry test issuer keeps its key here.
+deploy/registry/test/issuer-key.json
+node_modules/

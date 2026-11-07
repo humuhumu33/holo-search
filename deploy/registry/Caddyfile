@@ -1,0 +1,14 @@
+{$REGISTRY_HOST} {
+	encode gzip
+	# OCI pushes carry whole holos; allow them time and size.
+	request_body {
+		max_size 1GB
+	}
+	reverse_proxy gateway:5001 {
+		flush_interval -1
+		transport http {
+			read_timeout 10m
+			write_timeout 10m
+		}
+	}
+}

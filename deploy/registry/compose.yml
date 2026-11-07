@@ -1,0 +1,70 @@
+# The Prism registry: kappa-registry behind the Prism gateway, behind Caddy.
+#   cp .env.example .env   # set REGISTRY_HOST, KAPPA_WRITE_TOKEN, GATEWAY_SECRET
+#   docker compose up -d --build
+# kappa-registry and the gateway listen on the compose network only; Caddy
+# serves https://$REGISTRY_HOST with a Let's Encrypt certificate and hands
+# everything to the gateway. Data lives in the named volumes.
+services:
+  kappa:
+    build:
+      context: https://github.com/UOR-Foundation/kappa-registry.git#${KAPPA_COMMIT:-main}
+      dockerfile_inline: |
+        FROM rust:1-bookworm AS build
+        WORKDIR /src
+        COPY . .
+        RUN cargo build --release -p kappa-server
+        FROM debian:bookworm-slim
+        COPY --from=build /src/target/release/kappa-server /kappa-server
+        ENTRYPOINT ["/kappa-server"]
+    environment:
+      KAPPA_STORE_ROOT: /data
+      KAPPA_LISTEN_ADDR: 0.0.0.0:5000
+      # The gateway's token: the one writer. token=anchor; the anchor names
+      # the writer's identity and may be any stable label.
+      KAPPA_AUTH_TOKENS: ${KAPPA_WRITE_TOKEN}=prism-gateway
+    volumes:
+      - kappa-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/5000 && echo -e 'GET /v2/ HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q 'HTTP/1' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  gateway:
+    build: ./gateway
+    environment:
+      GATEWAY_LISTEN: 0.0.0.0:5001
+      GATEWAY_PUBLIC_URL: https://${REGISTRY_HOST}
+      KAPPA_URL: http://kappa:5000
+      KAPPA_WRITE_TOKEN: ${KAPPA_WRITE_TOKEN}
+      GATEWAY_SECRET: ${GATEWAY_SECRET}
+      GATEWAY_LOG: /data/registrations.jsonl
+      OIDC_AUDIENCE: prism-registry
+    volumes:
+      - gateway-data:/data
+    depends_on:
+      kappa:
+        condition: service_healthy
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      REGISTRY_HOST: ${REGISTRY_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
+volumes:
+  kappa-data:
+  gateway-data:
+  caddy-data:
+  caddy-config:

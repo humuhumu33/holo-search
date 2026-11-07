@@ -1,0 +1,82 @@
+{
+  "spec": "prism/index/1",
+  "apps": [
+    {
+      "name": "Leap year",
+      "address": "leap-year",
+      "live": "https://humuhumu33.github.io/prism-leap-year/",
+      "repository": "https://github.com/humuhumu33/prism-leap-year",
+      "owner": "humuhumu33",
+      "purpose": "Tells whether a Gregorian year is a leap year. Send a year as decimal digits; it answers leap or common, and invalid request for anything else.",
+      "proposition": "The year is divisible by 4, and a year divisible by 100 must also be divisible by 400.",
+      "fingerprint": "d8aee56fdbc1a59bd2cc742a4d99453b3fccc843550bb980cda732d6f078dcba",
+      "holo": {
+        "sha256": "a0c5a9fb0bb780f89691b9e81bc3c979048e93fd8bcb381ff05d29938e20b016",
+        "bytes": 16097
+      },
+      "examples": {
+        "passed": 12,
+        "total": 12
+      },
+      "stars": 0,
+      "icon": "https://humuhumu33.github.io/prism-leap-year/icons/icon-192.png",
+      "registry": null
+    },
+    {
+      "name": "Legal chess",
+      "address": "legal-chess",
+      "live": "https://humuhumu33.github.io/prism-legal-chess/",
+      "repository": "https://github.com/humuhumu33/prism-legal-chess",
+      "owner": "humuhumu33",
+      "purpose": "Play chess against an app that never accepts or plays an illegal move. Every move goes to the verified holo in your browser; it checks your move against the legal moves of the position, plays it, and answers with its own reply. It looks two moves ahead, so it is a modest opponent.",
+      "proposition": "If the app plays a move, the verdict on that move, computed by isLegalMove from the rules of movement and king safety, is Legal. Your moves pass through the same verdict before they are played.",
+      "fingerprint": "d53b9a40d50f07760bd98fd456e6ac7a5f9f99501e76ddfdc179c7a596aea4f1",
+      "holo": {
+        "sha256": "57398fa9121c9cb284ed8aa9512925f8a8ce4eea45ccec41c344a327963d6642",
+        "bytes": 49162
+      },
+      "examples": {
+        "passed": 24,
+        "total": 24
+      },
+      "stars": 0,
+      "icon": "https://humuhumu33.github.io/prism-legal-chess/icons/icon-192.png",
+      "registry": null
+    },
+    {
+      "name": "Luhn check",
+      "address": "luhn-check",
+      "live": "https://humuhumu33.github.io/prism-luhn/",
+      "repository": "https://github.com/humuhumu33/prism-luhn",
+      "owner": "humuhumu33",
+      "purpose": "Validates a card number with the Luhn check. Send 8 to 19 digits; it answers valid or invalid, and invalid request for anything else.",
+      "proposition": "From the right, double every second digit, subtract 9 when the double exceeds 9, add everything up. The total is divisible by 10.",
+      "fingerprint": "af7704d37dafc17f5bc51090e0ace8cd23e8e18604db410fb6b85a9d5fecf410",
+      "holo": {
+        "sha256": "ddb1286728be9ba49c0fd7e2bd98762e5007e492dcab80181aee5e57c8139358",
+        "bytes": 16530
+      },
+      "examples": {
+        "passed": 14,
+        "total": 14
+      },
+      "stars": 0,
+      "icon": "https://humuhumu33.github.io/prism-luhn/icons/icon-192.png",
+      "registry": null
+    }
+  ],
+  "rejected": [
+    {
+      "repository": "https://github.com/humuhumu33/holo-search",
+      "live": "https://humuhumu33.github.io/holo-search/",
+      "source": "seed",
+      "reason": "https://humuhumu33.github.io/holo-search/app.json answered 404"
+    },
+    {
+      "repository": "https://github.com/UOR-Foundation/template",
+      "live": "https://uor-foundation.github.io/template/",
+      "source": "seed",
+      "reason": "https://uor-foundation.github.io/template/app.json answered 404"
+    }
+  ]
+}
