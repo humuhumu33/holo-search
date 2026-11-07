@@ -34,6 +34,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
@@ -60,7 +63,9 @@ jobs:
             case "$(basename "$f")" in current.json|"$keep") ;; *) git rm -q "$f" ;; esac
           done
           git commit -m "registry/index: $(node -e 'const c=require("./registry/index/current.json");console.log(`${c.apps} app(s), ${c.rejected} rejected`)')"
-          git push
+          # The checkout keeps no credentials; the token is given to this push alone.
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin "HEAD:${GITHUB_REF_NAME}"
           # A push by this workflow's token starts no other workflow, so ask
           # Pages for the build that serves the new snapshot.
           gh api -X POST "repos/${GITHUB_REPOSITORY}/pages/builds" > /dev/null
