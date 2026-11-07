@@ -1,45 +1,43 @@
 #!/usr/bin/env node
-// The Prism registry gateway: the public face of kappa-registry for Prism
-// apps. Anyone reads. A GitHub Actions run writes, and only to the
-// repository it is building: it proves which repository it is with the
-// OIDC token GitHub mints for every run (no secret to distribute), and the
-// gateway lets it push to prism/<owner>/<name> and nowhere else.
+// The Prism registry gateway: the public face of the canonical kappa
+// registry for Prism apps, at https://registry.uor.foundation.
 //
-// It speaks the OCI distribution token flow, so `prism-code push`, docker,
-// skopeo and crane all work unchanged:
-//   1. a write without a token gets 401 and a Bearer challenge naming /token;
-//   2. GET /token?scope=repository:prism/o/n:push,pull with Basic auth whose
-//      password is the OIDC token returns a short-lived gateway token when
-//      the OIDC token's repository claim is o/n;
-//   3. writes with that token are forwarded to kappa-registry with the
-//      gateway's own registry token; reads are forwarded as they come.
-// After a push, POST /prism/register (OIDC again) records the app's live
-// page and fingerprint in the registration log the indexer reads:
-//   GET /prism/registrations            every registration, newest last
-//   GET /prism/registrations?since=<n>  those after sequence n
-// kappa-registry itself listens only on localhost; nothing reaches it but
-// this gateway. No dependencies: node:http, node:crypto and fetch.
-import { createHmac, createPublicKey, randomBytes, timingSafeEqual, verify as verifySignature } from "node:crypto";
+// kappa indexes every Prism app by its self-verifying address; the app's
+// bytes stay where its repository publishes them. Through this gateway:
+//   - Anyone reads kappa: GET/HEAD /v2/... (an app's address card is
+//     prism/<owner>/<name>:blake3-<fingerprint>). Nothing writes through it;
+//     the indexer beside kappa is its only Prism writer.
+//   - A GitHub Actions run registers its own app: POST /prism/register with
+//     the OIDC token GitHub mints for the run (no secret to hand out) and
+//     {fingerprint, live, name}. The token's repository claim is the app's
+//     repository. The indexer then checks that the live page serves that holo,
+//     that it verifies and that every example passes, and only then writes its
+//     address card into kappa and lists it.
+//       GET /prism/registrations            every registration, newest last
+//       GET /prism/registrations?since=<n>  those after sequence n
+//   - Every downstream client reads the index the indexer keeps:
+//       GET /index/current.json     the pointer, never cached
+//       GET /index/<sha256>.json    a snapshot, immutable
+// kappa's other endpoints stay inside. No dependencies: node:http,
+// node:crypto and fetch.
+import { createPublicKey, verify as verifySignature } from "node:crypto";
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import http from "node:http";
 import { dirname, join } from "node:path";
 
-const env = (name, fallback) => process.env[name] ?? fallback ?? (() => { throw new Error(`${name} is not set`); })();
+const env = (name, fallback) => process.env[name] ?? fallback;
 const LISTEN = env("GATEWAY_LISTEN", "127.0.0.1:5001");
 const PUBLIC_URL = new URL(env("GATEWAY_PUBLIC_URL", `http://${LISTEN}`));
 const REGISTRY = new URL(env("KAPPA_URL", "http://127.0.0.1:5000"));
-const REGISTRY_TOKEN = env("KAPPA_WRITE_TOKEN", "");
-const SECRET = env("GATEWAY_SECRET", randomBytes(32).toString("hex"));
 const ISSUER = env("OIDC_ISSUER", "https://token.actions.githubusercontent.com");
 const JWKS_URL = env("OIDC_JWKS_URL", `${ISSUER}/.well-known/jwks`);
 const AUDIENCE = env("OIDC_AUDIENCE", "prism-registry");
 const PREFIX = env("GATEWAY_PREFIX", "prism");
 const LOG = env("GATEWAY_LOG", "./data/registrations.jsonl");
-const TOKEN_TTL = 600;
-const MAX_BODY = 1024 * 1024;
+const INDEX = env("INDEX_DIR", join(dirname(LOG), "index"));
+const MAX_BODY = 64 * 1024;
 
-// -- JSON Web Tokens -----------------------------------------------------
-const b64url = (bytes) => Buffer.from(bytes).toString("base64url");
+// -- OIDC ----------------------------------------------------------------------
 const fromB64url = (text) => Buffer.from(text, "base64url");
 
 // GitHub's signing keys, cached for ten minutes; a key id not in the cache
@@ -77,43 +75,7 @@ async function verifyOidc(token) {
   return claims;
 }
 
-// The gateway's own tokens: HS256, naming the one repository they may write.
-function issueToken(repository, claims) {
-  const now = Math.floor(Date.now() / 1000);
-  const payload = { iss: PUBLIC_URL.origin, sub: claims.repository, repository, exp: now + TOKEN_TTL, iat: now, run: claims.run_id ?? null, sha: claims.sha ?? null, workflow: claims.job_workflow_ref ?? claims.workflow_ref ?? null };
-  const head = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const body = b64url(JSON.stringify(payload));
-  const signature = createHmac("sha256", SECRET).update(`${head}.${body}`).digest("base64url");
-  return { token: `${head}.${body}.${signature}`, expires_in: TOKEN_TTL, issued_at: new Date(now * 1000).toISOString() };
-}
-function readToken(token) {
-  const [h, p, s] = String(token ?? "").split(".");
-  if (!h || !p || !s) return null;
-  const expected = createHmac("sha256", SECRET).update(`${h}.${p}`).digest();
-  const given = fromB64url(s);
-  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
-  const payload = JSON.parse(fromB64url(p));
-  if (payload.exp < Math.floor(Date.now() / 1000)) return null;
-  return payload;
-}
-
-// -- The registry's names --------------------------------------------------
-// A GitHub repository owner/name as its OCI repository: lower case, under the prefix.
-const repositoryOf = (claimed) => `${PREFIX}/${claimed.toLowerCase()}`;
-// kappa-registry hands out upload sessions at /v2/_uploads/<id>, outside the
-// repository's path; the gateway remembers which repository each session it
-// started belongs to, so every chunk of an upload is checked like its start.
-const uploads = new Map();
-// The OCI repository a /v2/ path names, and whether the request writes.
-function target(method, pathname) {
-  const session = pathname.match(/^\/v2\/_uploads\/([^/?]+)/)?.[1];
-  const match = pathname.match(/^\/v2\/(.+?)\/(blobs|manifests|tags|referrers)(\/|$)/);
-  const repository = session ? uploads.get(session)?.repository ?? null : match?.[1] ?? null;
-  const writes = !["GET", "HEAD", "OPTIONS"].includes(method);
-  return { repository, writes, session };
-}
-
-// -- Registrations -----------------------------------------------------------
+// -- Registrations ---------------------------------------------------------------
 let sequence = 0;
 async function loadLog() {
   const text = await readFile(LOG, "utf8").catch(() => "");
@@ -129,20 +91,14 @@ async function record(entry) {
   return line;
 }
 
-// -- HTTP ------------------------------------------------------------------
+// -- HTTP --------------------------------------------------------------------------
 const json = (res, status, body, headers = {}) => {
-  const text = JSON.stringify(body);
-  res.writeHead(status, { "content-type": "application/json", "content-length": Buffer.byteLength(text), "access-control-allow-origin": "*", ...headers });
+  const text = status === 204 ? "" : JSON.stringify(body);
+  res.writeHead(status, { ...(text ? { "content-type": "application/json", "content-length": Buffer.byteLength(text) } : {}), "access-control-allow-origin": "*", ...headers });
   res.end(text);
 };
-const challenge = (res, scope) => json(res, 401, { errors: [{ code: "UNAUTHORIZED", message: "authentication required" }] }, { "www-authenticate": `Bearer realm="${PUBLIC_URL.origin}/token",service="${PUBLIC_URL.host}"${scope ? `,scope="${scope}"` : ""}` });
+const refuse = (res, status, code, message) => json(res, status, { errors: [{ code, message }] });
 const bearer = (req) => req.headers.authorization?.match(/^Bearer (.+)$/i)?.[1] ?? null;
-const basicPassword = (req) => {
-  const raw = req.headers.authorization?.match(/^Basic (.+)$/i)?.[1];
-  if (!raw) return null;
-  const text = Buffer.from(raw, "base64").toString("utf8");
-  return text.slice(text.indexOf(":") + 1);
-};
 async function body(req) {
   const chunks = [];
   let size = 0;
@@ -154,25 +110,16 @@ async function body(req) {
   return Buffer.concat(chunks);
 }
 
-// Forward a request to kappa-registry, with the gateway's token when it writes.
-async function forward(req, res, writes, repository = null) {
-  const url = new URL(req.url, REGISTRY);
+// A read, forwarded to kappa as an anonymous one.
+async function forward(req, res) {
   const headers = { ...req.headers, host: REGISTRY.host };
-  delete headers.connection;
-  if (writes) headers.authorization = `Bearer ${REGISTRY_TOKEN}`;
-  else delete headers.authorization;
-  const upstream = await fetch(url, { method: req.method, headers, body: ["GET", "HEAD"].includes(req.method) ? undefined : req, duplex: "half", redirect: "manual" });
+  for (const name of ["connection", "authorization", "cookie"]) delete headers[name];
+  const upstream = await fetch(new URL(req.url, REGISTRY), { method: req.method, headers, redirect: "manual" });
   const out = Object.fromEntries(upstream.headers.entries());
   delete out["transfer-encoding"];
   out["access-control-allow-origin"] = "*";
-  // A Location the registry wrote for itself is rewritten to this gateway.
+  out["access-control-expose-headers"] = "docker-content-digest, content-type, content-length";
   if (out.location) out.location = out.location.replace(REGISTRY.origin, PUBLIC_URL.origin);
-  // An upload session this request opened belongs to its repository, for an hour.
-  const session = out.location?.match(/\/v2\/_uploads\/([^/?]+)/)?.[1];
-  if (writes && repository && session) {
-    uploads.set(session, { repository, until: Date.now() + 3600e3 });
-    for (const [id, kept] of uploads) if (kept.until < Date.now()) uploads.delete(id);
-  }
   res.writeHead(upstream.status, out);
   if (req.method === "HEAD" || !upstream.body) return res.end();
   for await (const chunk of upstream.body) res.write(chunk);
@@ -181,52 +128,32 @@ async function forward(req, res, writes, repository = null) {
 
 async function handle(req, res) {
   const url = new URL(req.url, PUBLIC_URL);
-  if (req.method === "OPTIONS") return json(res, 204, {}, { "access-control-allow-headers": "authorization, content-type", "access-control-allow-methods": "GET, HEAD, OPTIONS" });
-
-  if (url.pathname === "/token" && req.method === "GET") {
-    const scope = url.searchParams.get("scope") ?? "";
-    const wanted = scope.match(/^repository:([^:]+):([a-z,]+)$/);
-    const oidc = basicPassword(req) ?? bearer(req);
-    if (!oidc) return challenge(res, scope);
-    let claims;
-    try {
-      claims = await verifyOidc(oidc);
-    } catch (error) {
-      return json(res, 401, { errors: [{ code: "DENIED", message: `the OIDC token was refused: ${error.message}` }] });
-    }
-    const allowed = repositoryOf(claims.repository);
-    if (wanted && wanted[1] !== allowed) return json(res, 403, { errors: [{ code: "DENIED", message: `${claims.repository} may push to ${allowed} only` }] });
-    return json(res, 200, issueToken(allowed, claims));
-  }
+  if (req.method === "OPTIONS") return json(res, 204, null, { "access-control-allow-headers": "authorization, content-type, accept", "access-control-allow-methods": "GET, HEAD, POST, OPTIONS", "access-control-max-age": "86400" });
 
   if (url.pathname === "/prism/register" && req.method === "POST") {
     const oidc = bearer(req);
-    if (!oidc) return challenge(res);
+    if (!oidc) return refuse(res, 401, "UNAUTHORIZED", "a GitHub Actions OIDC token for the audience prism-registry is required");
     let claims;
     try {
       claims = await verifyOidc(oidc);
     } catch (error) {
-      return json(res, 401, { errors: [{ code: "DENIED", message: `the OIDC token was refused: ${error.message}` }] });
+      return refuse(res, 401, "DENIED", `the OIDC token was refused: ${error.message}`);
     }
     let card;
     try {
       card = JSON.parse((await body(req)).toString("utf8"));
     } catch {
-      return json(res, 400, { errors: [{ code: "INVALID", message: "the body is not JSON" }] });
+      return refuse(res, 400, "INVALID", "the body is not JSON");
     }
-    const fingerprint = String(card.fingerprint ?? "");
+    const fingerprint = String(card.fingerprint ?? "").replace(/^blake3:/, "");
     const live = String(card.live ?? "");
-    if (!/^[0-9a-f]{64}$/.test(fingerprint)) return json(res, 400, { errors: [{ code: "INVALID", message: "fingerprint is not a blake3 hex digest" }] });
-    if (!/^https:\/\/[^\s]+\/$/.test(live) && !(PUBLIC_URL.protocol === "http:" && /^http:\/\/[^\s]+\/$/.test(live))) return json(res, 400, { errors: [{ code: "INVALID", message: "live is not an https URL ending in /" }] });
-    const repository = repositoryOf(claims.repository);
-    // The holo must be in the registry under this repository, by its fingerprint tag.
-    const probe = await fetch(new URL(`/v2/${repository}/manifests/blake3-${fingerprint}`, REGISTRY), { method: "HEAD", headers: { accept: "application/vnd.oci.image.manifest.v1+json" } });
-    if (!probe.ok) return json(res, 409, { errors: [{ code: "NOT_PUSHED", message: `no holo with fingerprint ${fingerprint} is pushed to ${repository}` }] });
+    if (!/^[0-9a-f]{64}$/.test(fingerprint)) return refuse(res, 400, "INVALID", "fingerprint is not a BLAKE3 hex digest");
+    if (!/^https:\/\/[^\s]+\/$/.test(live) && !(PUBLIC_URL.protocol === "http:" && /^http:\/\/[^\s]+\/$/.test(live))) return refuse(res, 400, "INVALID", "live is not an https URL ending in /");
+    const repository = `${PREFIX}/${claims.repository.toLowerCase()}`;
     const entry = await record({
       repository: claims.repository,
-      reference: `${PUBLIC_URL.host}/${repository}@blake3:${fingerprint}`,
+      address: `${PUBLIC_URL.host}/${repository}:blake3-${fingerprint}`,
       fingerprint,
-      digest: probe.headers.get("docker-content-digest"),
       live,
       name: typeof card.name === "string" ? card.name.slice(0, 120) : null,
       run: claims.run_id ?? null,
@@ -242,18 +169,26 @@ async function handle(req, res) {
     return json(res, 200, { spec: "prism/registrations/1", sequence, entries: entries.filter((e) => e.sequence > since) });
   }
 
-  if (url.pathname.startsWith("/v2/") || url.pathname === "/v2") {
-    const { repository, writes } = target(req.method, url.pathname);
-    if (!writes) return forward(req, res, false);
-    const scope = repository ? `repository:${repository}:push,pull` : "";
-    const granted = readToken(bearer(req));
-    if (!granted) return challenge(res, scope);
-    if (!repository || granted.repository !== repository) return json(res, 403, { errors: [{ code: "DENIED", message: `this token writes ${granted.repository} only` }] });
-    return forward(req, res, true, repository);
+  const indexFile = url.pathname.match(/^\/index\/(current|[0-9a-f]{64})\.json$/)?.[1];
+  if (indexFile && ["GET", "HEAD"].includes(req.method)) {
+    const bytes = await readFile(join(INDEX, `${indexFile}.json`)).catch(() => null);
+    if (!bytes) return refuse(res, 404, "NOT_FOUND", "no such index file");
+    res.writeHead(200, {
+      "content-type": "application/json",
+      "content-length": bytes.length,
+      "access-control-allow-origin": "*",
+      "cache-control": indexFile === "current" ? "no-cache" : "public, max-age=31536000, immutable",
+    });
+    return res.end(req.method === "HEAD" ? undefined : bytes);
   }
 
-  if (url.pathname === "/" || url.pathname === "/healthz") return json(res, 200, { ok: true, registry: "kappa-registry", prefix: PREFIX, issuer: ISSUER, audience: AUDIENCE });
-  json(res, 404, { errors: [{ code: "NOT_FOUND", message: "no such path" }] });
+  if (url.pathname.startsWith("/v2/") || url.pathname === "/v2") {
+    if (!["GET", "HEAD"].includes(req.method)) return json(res, 405, { errors: [{ code: "UNSUPPORTED", message: "read-only: an app registers its address with POST /prism/register" }] }, { allow: "GET, HEAD" });
+    return forward(req, res);
+  }
+
+  if (url.pathname === "/" || url.pathname === "/healthz") return json(res, 200, { ok: true, registry: "kappa-registry", prefix: PREFIX, issuer: ISSUER, audience: AUDIENCE, index: "/index/current.json" });
+  refuse(res, 404, "NOT_FOUND", "no such path");
 }
 
 const [host, port] = LISTEN.split(":");
@@ -261,7 +196,7 @@ await loadLog();
 http.createServer((req, res) => {
   handle(req, res).catch((error) => {
     console.error(`${req.method} ${req.url}: ${error.message}`);
-    if (!res.headersSent) json(res, 502, { errors: [{ code: "UPSTREAM", message: error.message }] });
+    if (!res.headersSent) refuse(res, 502, "UPSTREAM", error.message);
     else res.end();
   });
-}).listen(Number(port), host, () => console.log(`prism registry gateway on ${LISTEN}, public ${PUBLIC_URL.origin}, registry ${REGISTRY.origin}, log ${LOG}`));
+}).listen(Number(port), host, () => console.log(`prism registry gateway on ${LISTEN}, public ${PUBLIC_URL.origin}, kappa ${REGISTRY.origin}, log ${LOG}`));

@@ -1,10 +1,10 @@
-{$REGISTRY_HOST} {
-	encode gzip
-	# OCI pushes carry whole holos; allow them time and size.
+# The site block for the host's Caddy (on the VPS: /root/twenty/Caddyfile).
+# Holos are up to 64 MiB, and a push may send one in a single request.
+registry.uor.foundation {
 	request_body {
-		max_size 1GB
+		max_size 80MB
 	}
-	reverse_proxy gateway:5001 {
+	reverse_proxy prism-gateway:5001 {
 		flush_interval -1
 		transport http {
 			read_timeout 10m

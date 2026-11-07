@@ -1,70 +1,52 @@
-# The Prism registry: kappa-registry behind the Prism gateway, behind Caddy.
-#   cp .env.example .env   # set REGISTRY_HOST, KAPPA_WRITE_TOKEN, GATEWAY_SECRET
-#   docker compose up -d --build
-# kappa-registry and the gateway listen on the compose network only; Caddy
-# serves https://$REGISTRY_HOST with a Let's Encrypt certificate and hands
-# everything to the gateway. Data lives in the named volumes.
+# The Prism side of the canonical kappa registry. kappa itself is the hub's
+# (hub-kappa, /root/hub); this adds, on the same Docker network:
+#   gateway  the public face at https://$REGISTRY_HOST: anyone reads kappa; a
+#            GitHub Actions run registers its own app's address (OIDC, no
+#            secret); serves the index at /index/.
+#   indexer  kappa's only Prism writer: verifies every app (its bytes stay on
+#            its GitHub Pages site) and stores its address card in kappa; lists
+#            every AI artifact in the hub's registry by digest.
+#   cp .env.example .env && docker compose up -d --build
+# The host's Caddy terminates TLS and proxies $REGISTRY_HOST to
+# prism-gateway:5001 (Caddyfile in this folder). Data lives in ./data.
 services:
-  kappa:
-    build:
-      context: https://github.com/UOR-Foundation/kappa-registry.git#${KAPPA_COMMIT:-main}
-      dockerfile_inline: |
-        FROM rust:1-bookworm AS build
-        WORKDIR /src
-        COPY . .
-        RUN cargo build --release -p kappa-server
-        FROM debian:bookworm-slim
-        COPY --from=build /src/target/release/kappa-server /kappa-server
-        ENTRYPOINT ["/kappa-server"]
-    environment:
-      KAPPA_STORE_ROOT: /data
-      KAPPA_LISTEN_ADDR: 0.0.0.0:5000
-      # The gateway's token: the one writer. token=anchor; the anchor names
-      # the writer's identity and may be any stable label.
-      KAPPA_AUTH_TOKENS: ${KAPPA_WRITE_TOKEN}=prism-gateway
-    volumes:
-      - kappa-data:/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/5000 && echo -e 'GET /v2/ HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q 'HTTP/1' <&3"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-
   gateway:
-    build: ./gateway
+    build: .
+    container_name: prism-gateway
+    command: ["node", "gateway.mjs"]
     environment:
       GATEWAY_LISTEN: 0.0.0.0:5001
       GATEWAY_PUBLIC_URL: https://${REGISTRY_HOST}
-      KAPPA_URL: http://kappa:5000
-      KAPPA_WRITE_TOKEN: ${KAPPA_WRITE_TOKEN}
-      GATEWAY_SECRET: ${GATEWAY_SECRET}
+      KAPPA_URL: ${KAPPA_URL:-http://hub-kappa:5000}
       GATEWAY_LOG: /data/registrations.jsonl
       OIDC_AUDIENCE: prism-registry
     volumes:
-      - gateway-data:/data
-    depends_on:
-      kappa:
-        condition: service_healthy
+      - ./data:/data
+    networks: [edge]
+    mem_limit: 256m
+    cpus: 0.5
     restart: unless-stopped
 
-  caddy:
-    image: caddy:2-alpine
-    ports:
-      - "80:80"
-      - "443:443"
+  indexer:
+    build: .
+    container_name: prism-indexer
+    command: ["node", "indexer.mjs"]
     environment:
-      REGISTRY_HOST: ${REGISTRY_HOST}
+      DATA: /data
+      KAPPA_URL: ${KAPPA_URL:-http://hub-kappa:5000}
+      PUBLIC_HOST: ${REGISTRY_HOST}
+      ARTIFACTS_URL: ${ARTIFACTS_URL:-http://hub-registry:5000}
+      ARTIFACTS_HOST: ${ARTIFACTS_HOST:-hub.uor.foundation}
+      DISCOVER_OWNERS: ${DISCOVER_OWNERS}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - gateway
+      - ./data:/data
+    networks: [edge]
+    mem_limit: 1g
+    cpus: 1
     restart: unless-stopped
 
-volumes:
-  kappa-data:
-  gateway-data:
-  caddy-data:
-  caddy-config:
+networks:
+  edge:
+    name: ${EDGE_NETWORK:-twenty_default}
+    external: true
