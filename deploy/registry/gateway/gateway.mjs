@@ -18,6 +18,15 @@
 //   - Every downstream client reads the index the indexer keeps:
 //       GET /index/current.json     the pointer, never cached
 //       GET /index/<sha256>.json    a snapshot, immutable
+//       GET /index/apps.json        the listed apps as a search index (a JSON
+//                                   list of {sha256, blake3, module, bytes,
+//                                   kind, live, repository}), never cached
+//   - Anything by its self-verifying address:
+//       GET /prism/by/<digest>[.holo|.json]
+//     A listed app's BLAKE3 fingerprint, or its holo's SHA-256, redirects to
+//     where its repository publishes the bytes (the bytes never pass through
+//     here, and the client checks them against the address); a snapshot's
+//     SHA-256 serves the snapshot.
 // kappa's other endpoints stay inside. No dependencies: node:http,
 // node:crypto and fetch.
 import { createPublicKey, verify as verifySignature } from "node:crypto";
@@ -89,6 +98,22 @@ async function record(entry) {
   const line = { sequence, at: new Date().toISOString(), ...entry };
   await appendFile(LOG, `${JSON.stringify(line)}\n`);
   return line;
+}
+
+// -- The index, as clients read it -----------------------------------------------------
+let listed = { sha256: null, apps: [], byDigest: new Map() };
+async function currentApps() {
+  const pointer = JSON.parse(await readFile(join(INDEX, "current.json"), "utf8"));
+  if (pointer.sha256 === listed.sha256) return listed;
+  const snapshot = JSON.parse(await readFile(join(INDEX, `${pointer.sha256}.json`), "utf8"));
+  const apps = (snapshot.apps ?? []).filter((app) => /^[0-9a-f]{64}$/.test(app.fingerprint ?? "") && /^[0-9a-f]{64}$/.test(app.holo?.sha256 ?? "") && /^https:\/\//.test(app.holo?.url ?? ""));
+  const byDigest = new Map();
+  for (const app of apps) {
+    byDigest.set(app.fingerprint, app);
+    byDigest.set(app.holo.sha256, app);
+  }
+  listed = { sha256: pointer.sha256, apps, byDigest };
+  return listed;
 }
 
 // -- HTTP --------------------------------------------------------------------------
@@ -180,6 +205,26 @@ async function handle(req, res) {
       "cache-control": indexFile === "current" ? "no-cache" : "public, max-age=31536000, immutable",
     });
     return res.end(req.method === "HEAD" ? undefined : bytes);
+  }
+
+  if (url.pathname === "/index/apps.json" && ["GET", "HEAD"].includes(req.method)) {
+    const { apps } = await currentApps();
+    const list = apps.map((app) => ({ sha256: app.holo.sha256, blake3: app.fingerprint, module: app.name, bytes: app.holo.bytes, kind: "holo", live: app.live, repository: app.repository }));
+    return json(res, 200, list, { "cache-control": "no-cache" });
+  }
+
+  const byAddress = url.pathname.match(/^\/prism\/by\/([0-9a-f]{64})(\.holo|\.json)?$/);
+  if (byAddress && ["GET", "HEAD"].includes(req.method)) {
+    const [, digest, ext = ""] = byAddress;
+    const snapshot = ext !== ".holo" ? await readFile(join(INDEX, `${digest}.json`)).catch(() => null) : null;
+    if (snapshot) {
+      res.writeHead(200, { "content-type": "application/json", "content-length": snapshot.length, "access-control-allow-origin": "*", "cache-control": "public, max-age=31536000, immutable" });
+      return res.end(req.method === "HEAD" ? undefined : snapshot);
+    }
+    const app = ext !== ".json" ? (await currentApps()).byDigest.get(digest) : null;
+    if (!app) return refuse(res, 404, "NOT_FOUND", `no listed app or snapshot has the address ${digest}`);
+    res.writeHead(302, { location: app.holo.url, "access-control-allow-origin": "*", "cache-control": "no-cache" });
+    return res.end();
   }
 
   if (url.pathname.startsWith("/v2/") || url.pathname === "/v2") {

@@ -1,0 +1,64 @@
+{
+  "format": "holo-search/sources/1",
+  "about": "Where Holo Search looks for an app by its address, tried in order. No source is trusted: every byte is hashed in the page and refused unless it matches the address. The canonical Prism index is the hosted kappa registry (registry.uor.foundation): it lists every Prism app that verifies, by its self-verifying address (the holo's BLAKE3 fingerprint and its SHA-256), and resolves either address to the bytes its repository publishes. IPFS sources take the CID that follows from the address (sha256 file, or a holo body by its blake3 fingerprint). Indices are what search runs over; a full address needs none.",
+  "indices": [
+    "https://registry.uor.foundation/index/apps.json",
+    "registry/index.json",
+    "https://raw.githubusercontent.com/humuhumu33/holo-search/main/registry/index.json"
+  ],
+  "sources": [
+    {
+      "name": "this browser",
+      "kind": "cache"
+    },
+    {
+      "name": "this site",
+      "kind": "http",
+      "url": "registry/{digest}{ext}"
+    },
+    {
+      "name": "Prism registry",
+      "kind": "http",
+      "url": "https://registry.uor.foundation/prism/by/{digest}{ext}",
+      "timeout_ms": 8000,
+      "note": "The canonical kappa registry: a Prism app's BLAKE3 fingerprint or SHA-256 redirects to the bytes its repository publishes; an index snapshot's SHA-256 serves it."
+    },
+    {
+      "name": "GitHub mirror",
+      "kind": "http",
+      "url": "https://raw.githubusercontent.com/humuhumu33/holo-search/main/registry/{digest}{ext}"
+    },
+    {
+      "name": "your IPFS node",
+      "kind": "ipfs",
+      "gateway": "http://127.0.0.1:8081",
+      "timeout_ms": 2000,
+      "enabled": false,
+      "note": "Off on the public page: from an https site, browsers ask every visitor's permission to reach the local network. Local tests use test/sources.ipfs-only.json."
+    },
+    {
+      "name": "trustless-gateway.link",
+      "kind": "ipfs",
+      "gateway": "https://trustless-gateway.link",
+      "timeout_ms": 6000,
+      "enabled": false,
+      "note": "Off until the registry's blocks are provided on public IPFS; until then it only adds a 6 s wait to a missing address."
+    },
+    {
+      "name": "ipfs.io",
+      "kind": "ipfs",
+      "gateway": "https://ipfs.io",
+      "timeout_ms": 6000,
+      "enabled": false,
+      "note": "Off until the blocks are public. Its error replies carry no CORS header, so a miss shows as a console error."
+    },
+    {
+      "name": "dweb.link",
+      "kind": "ipfs",
+      "gateway": "https://dweb.link",
+      "timeout_ms": 6000,
+      "enabled": false,
+      "note": "Off until the blocks are public. Its error replies carry no CORS header, so a miss shows as a console error."
+    }
+  ]
+}
